@@ -4,7 +4,7 @@ import { Search, Menu, X, User, Settings, LogOut, Crown, Bell } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme, themes } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import SearchModal from '@/components/search/SearchModal';
+import SearchModalLive from '@/components/search/SearchModalLive';
 
 export default function Header() {
   const { theme, setTheme, currentTheme } = useTheme();
@@ -213,7 +213,7 @@ export default function Header() {
         </AnimatePresence>
       </motion.header>
 
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchModalLive isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
