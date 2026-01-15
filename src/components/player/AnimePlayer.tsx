@@ -20,6 +20,13 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'sub' | 'audio'>('sub');
 
+  // Premium Logic
+  const [watchTime, setWatchTime] = useState(0);
+  const [showPremiumLock, setShowPremiumLock] = useState(false);
+  // Mock premium check - in real app, check user.isPremium
+  const isPremium = false;
+  const FREE_LIMIT = 60; // seconds
+
   // Audio Sync Logic
   useEffect(() => {
     const video = videoRef.current;
@@ -35,20 +42,28 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
     };
     const syncRate = () => audio.playbackRate = video.playbackRate;
 
+    const handleTimeUpdate = () => {
+        syncSeek();
+        if (!isPremium && video.currentTime > FREE_LIMIT) {
+            video.pause();
+            setShowPremiumLock(true);
+        }
+    };
+
     video.addEventListener('play', syncPlay);
     video.addEventListener('pause', syncPause);
     video.addEventListener('seeking', syncSeek);
     video.addEventListener('ratechange', syncRate);
-    video.addEventListener('timeupdate', syncSeek);
+    video.addEventListener('timeupdate', handleTimeUpdate);
 
     return () => {
         video.removeEventListener('play', syncPlay);
         video.removeEventListener('pause', syncPause);
         video.removeEventListener('seeking', syncSeek);
         video.removeEventListener('ratechange', syncRate);
-        video.removeEventListener('timeupdate', syncSeek);
+        video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [currentAudio]);
+  }, [currentAudio, isPremium]);
 
   // Handle Audio Switching
   useEffect(() => {
@@ -142,6 +157,25 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
       </video>
 
       <audio ref={audioRef} className="hidden" />
+
+      {/* Premium Lock Overlay */}
+      {showPremiumLock && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-center p-6">
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-[1px] rounded-2xl">
+                  <div className="bg-black rounded-2xl p-8 max-w-md">
+                      <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                          Free Preview Ended
+                      </h3>
+                      <p className="text-gray-400 mb-6">
+                          Go Premium to continue watching this episode and unlock unlimited access to the entire library.
+                      </p>
+                      <button className="w-full bg-white text-black font-bold py-3 rounded-xl hover:scale-105 transition-transform">
+                          Upgrade to Premium
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* Netflix-style Settings Overlay */}
       <div className="absolute top-4 right-4 z-50">

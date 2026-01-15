@@ -40,11 +40,11 @@ export default function AnimeDetails() {
         {/* Banner */}
         <div className="relative h-[40vh] w-full overflow-hidden">
              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-             <img src={anime.info.poster} alt={anime.info.name} className="w-full h-full object-cover blur-sm opacity-50" />
+             <img src={anime.info.poster} alt={anime.info.title} className="w-full h-full object-cover blur-sm opacity-50" />
              <div className="absolute bottom-10 left-10 z-20 flex gap-6 items-end">
                  <img src={anime.info.poster} className="w-40 rounded-lg shadow-2xl" />
                  <div>
-                     <h1 className="text-4xl font-bold mb-2">{anime.info.name}</h1>
+                     <h1 className="text-4xl font-bold mb-2">{anime.info.title}</h1>
                      <div className="flex gap-2 text-sm text-gray-300">
                         <span>{anime.info.stats.rating}</span>
                         <span>•</span>
@@ -56,18 +56,10 @@ export default function AnimeDetails() {
 
         <div className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
              <div className="lg:col-span-2 space-y-8">
-                 {/* Player Section */}
-                 {currentEpisode && (
-                     <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-                         <h2 className="text-xl font-bold mb-4">Episode {currentEpisode.number}: {currentEpisode.title}</h2>
-                         <AnimePlayer episodeId={currentEpisode.episodeId} />
-                     </div>
-                 )}
-
-                 {/* Description */}
+                 {/* Player Section Removed - Separate Watch Page */}
                  <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-                     <h3 className="text-lg font-bold mb-2">Synopsis</h3>
-                     <p className="text-zinc-400 leading-relaxed">{anime.info.description}</p>
+                     <h2 className="text-2xl font-bold mb-4">Synopsis</h2>
+                     <p className="text-zinc-400 leading-relaxed text-lg">{anime.info.description}</p>
                  </div>
              </div>
 
@@ -78,14 +70,14 @@ export default function AnimeDetails() {
                  </div>
                  <div className="overflow-y-auto flex-1 p-2 space-y-2">
                      {episodes.map(ep => (
-                         <button
+                         <a
                             key={ep.episodeId}
-                            onClick={() => setCurrentEpisode(ep)}
-                            className={`w-full text-left p-3 rounded hover:bg-zinc-800 transition-colors flex justify-between items-center ${currentEpisode?.episodeId === ep.episodeId ? 'bg-purple-900/30 text-purple-400 border border-purple-500/30' : 'text-zinc-300'}`}
+                            href={`/watch/${id}/${ep.episodeId}`}
+                            className={`block w-full text-left p-3 rounded hover:bg-zinc-800 transition-colors flex justify-between items-center text-zinc-300`}
                          >
                              <span className="font-medium">EP {ep.number}</span>
                              <span className="text-sm truncate w-32 text-right opacity-60">{ep.title}</span>
-                         </button>
+                         </a>
                      ))}
                  </div>
              </div>

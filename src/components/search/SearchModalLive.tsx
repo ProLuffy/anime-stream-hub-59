@@ -109,13 +109,13 @@ export default function SearchModalLive({ isOpen, onClose }: SearchModalLiveProp
                 >
                   <img
                     src={anime.poster}
-                    alt={anime.name}
+                    alt={anime.title}
                     className="w-12 h-16 object-cover rounded-lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold truncate">{anime.name}</h4>
-                    {anime.jname && (
-                      <p className="text-sm text-muted-foreground truncate font-jp">{anime.jname}</p>
+                    <h4 className="font-semibold truncate">{anime.title}</h4>
+                    {anime.alternativeTitle && (
+                      <p className="text-sm text-muted-foreground truncate font-jp">{anime.alternativeTitle}</p>
                     )}
                     <div className="flex items-center gap-2 mt-1">
                       {anime.type && (

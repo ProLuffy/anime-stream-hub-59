@@ -10,7 +10,8 @@ export default function HeroSectionLive() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
 
-  const spotlightAnimes = data?.data?.spotlightAnimes || [];
+  // Fixed key mapping: API returns 'spotlight'
+  const spotlightAnimes = data?.data?.spotlight || [];
   const current = spotlightAnimes[currentIndex];
 
   useEffect(() => {
