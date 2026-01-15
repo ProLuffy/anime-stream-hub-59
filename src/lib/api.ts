@@ -2,7 +2,7 @@
 // This service fetches publicly available anime metadata from third-party APIs
 // No video hosting or streaming is performed by this application
 
-const API_BASE = 'https://hianime-api-seven-teal.vercel.app';
+const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 
 export interface AnimeResult {
   id: string;

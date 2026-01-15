@@ -4,13 +4,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useIntro } from "@/hooks/useIntro";
 import CinematicIntro from "@/components/intro/CinematicIntro";
 import Index from "./pages/Index";
 import AnimeDetailsLive from "./pages/AnimeDetailsLive";
-import WatchPageLive from "./pages/WatchPageLive";
+import WatchPage from "./pages/WatchPage";
 import LoginPage from "./pages/auth/Login";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AnimeDetails from "./pages/anime/AnimeDetails";
@@ -48,7 +49,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/anime/:id" element={<AnimeDetails />} />
-        {/* <Route path="/watch/:id/:episodeId" element={<WatchPageLive />} /> */}
+        <Route path="/watch/:id/:episodeId" element={<WatchPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
@@ -75,19 +76,21 @@ function AppContent() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <GoogleOAuthProvider clientId="258877510838-v47hc4c9h3p0ggk3d1p2cgt600po7g65.apps.googleusercontent.com">
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </GoogleOAuthProvider>
 );
 
 export default App;

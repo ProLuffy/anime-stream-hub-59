@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { animeService } from '../../lib/api';
 import AnimePlayer from '../../components/player/AnimePlayer';
 
@@ -70,14 +70,14 @@ export default function AnimeDetails() {
                  </div>
                  <div className="overflow-y-auto flex-1 p-2 space-y-2">
                      {episodes.map(ep => (
-                         <a
+                         <Link
                             key={ep.episodeId}
-                            href={`/watch/${id}/${ep.episodeId}`}
+                            to={`/watch/${id}/${ep.episodeId}`}
                             className={`block w-full text-left p-3 rounded hover:bg-zinc-800 transition-colors flex justify-between items-center text-zinc-300`}
                          >
                              <span className="font-medium">EP {ep.number}</span>
                              <span className="text-sm truncate w-32 text-right opacity-60">{ep.title}</span>
-                         </a>
+                         </Link>
                      ))}
                  </div>
              </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { authService } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,6 +24,15 @@ export default function LoginPage() {
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
     }
+  };
+
+  const handleGoogleSuccess = (credentialResponse: any) => {
+      console.log('Google Login Success:', credentialResponse);
+      // Here you would typically send the credentialResponse.credential to your backend
+      // await authService.googleLogin(credentialResponse.credential);
+      // For now, simulating success
+      localStorage.setItem('user', JSON.stringify({ token: 'mock-google-token', role: 'user' }));
+      navigate('/');
   };
 
   return (
@@ -97,6 +107,21 @@ export default function LoginPage() {
             {isLogin ? 'Sign In' : 'Sign Up'}
           </motion.button>
         </form>
+
+        <div className="my-6 flex items-center justify-center">
+            <div className="h-px w-full bg-zinc-700"></div>
+            <span className="px-3 text-zinc-500 text-sm">OR</span>
+            <div className="h-px w-full bg-zinc-700"></div>
+        </div>
+
+        <div className="flex justify-center mb-6">
+            <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Login Failed')}
+                theme="filled_black"
+                shape="pill"
+            />
+        </div>
 
         <div className="mt-6 text-center text-zinc-400 text-sm">
           {isLogin ? "Don't have an account? " : "Already have an account? "}

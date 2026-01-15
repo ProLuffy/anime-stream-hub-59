@@ -4,7 +4,7 @@ import Anime from '../models/Anime.js';
 import Episode from '../models/Episode.js';
 
 const router = express.Router();
-const API_BASE = 'https://hianime-api-seven-teal.vercel.app';
+const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 
 // @desc    Get Home Data
 // @route   GET /api/anime/home

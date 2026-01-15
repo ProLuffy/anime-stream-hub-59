@@ -1,24 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { animeService } from '../../lib/api';
-import { Settings, Subtitles, Volume2 } from 'lucide-react';
+import { Settings, Subtitles, Volume2, Server, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PlayerProps {
   episodeId: string;
-  server?: string;
 }
 
-export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps) {
+export default function AnimePlayer({ episodeId }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Data States
+  const [servers, setServers] = useState<any[]>([]);
+  const [currentServer, setCurrentServer] = useState<string>('hd-1');
   const [sources, setSources] = useState<any>(null);
+
+  // Media States
   const [subtitles, setSubtitles] = useState<any[]>([]);
   const [audioTracks, setAudioTracks] = useState<any[]>([]);
   const [currentSub, setCurrentSub] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<string>('Original');
+
+  // UI States
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'sub' | 'audio'>('sub');
+  const [activeTab, setActiveTab] = useState<'sub' | 'audio' | 'server'>('server');
 
   // Premium Logic
   const [watchTime, setWatchTime] = useState(0);
@@ -87,16 +95,51 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
       }
   }, [currentAudio, audioTracks]);
 
+  // Fetch Servers
+  useEffect(() => {
+      async function loadServers() {
+          try {
+              const data = await animeService.fetchEpisodeServers(episodeId);
+              // data.data.sub or data.data.dub array
+              const serverList = data.data?.sub || data.data?.dub || [];
+              setServers(serverList);
+              if (serverList.length > 0) {
+                  // Prefer VidStreaming / HD-1
+                  const preferred = serverList.find((s: any) => s.serverName === 'HD-1' || s.serverName === 'VidStreaming');
+                  setCurrentServer(preferred ? preferred.serverName : serverList[0].serverName);
+              }
+          } catch (err) {
+              console.error("Failed to load servers", err);
+          }
+      }
+      loadServers();
+  }, [episodeId]);
+
+  // Fetch Sources when Server/Episode Changes
   useEffect(() => {
     async function loadSources() {
+      if (!currentServer) return;
+
       setLoading(true);
+      setError(null);
+      setSources(null);
+
       try {
-        const data = await animeService.getEpisodeSources(episodeId, server);
+        // Map server name to API ID if needed, or pass as is depending on API requirement.
+        // Hianime API usually takes 'hd-1', 'hd-2' etc. assuming serverName matches or we extract it.
+        // If server object has 'serverId', might need mapping.
+        // For now using the serverName lowercased/formatted.
+        const serverParam = currentServer.toLowerCase().replace(' ', '-');
+
+        const data = await animeService.getEpisodeSources(episodeId, serverParam);
+
+        if (!data || !data.sources) {
+            throw new Error("No sources found");
+        }
+
         setSources(data);
 
         // Handle Subtitles
-        // Merge API subtitles with custom overlays if any (passed via logic or separate fetch)
-        // For now, using API subs.
         const apiSubs = data.subtitles || [];
         setSubtitles(apiSubs);
 
@@ -109,12 +152,13 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
 
       } catch (error) {
         console.error("Error loading player sources", error);
+        setError("Failed to load stream. Try switching servers.");
       } finally {
         setLoading(false);
       }
     }
     loadSources();
-  }, [episodeId, server]);
+  }, [episodeId, currentServer]);
 
   useEffect(() => {
     if (videoRef.current && currentSub) {
@@ -139,7 +183,31 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
     }
   }, [currentSub]);
 
-  if (loading) return <div className="aspect-video bg-zinc-900 flex items-center justify-center text-white/50 animate-pulse rounded-lg">Loading Stream...</div>;
+  if (loading) return (
+      <div className="aspect-video bg-zinc-900 flex flex-col items-center justify-center text-white/50 rounded-lg gap-4">
+          <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+          <p>Connecting to {currentServer}...</p>
+      </div>
+  );
+
+  if (error) return (
+      <div className="aspect-video bg-zinc-900 flex flex-col items-center justify-center text-red-400 rounded-lg gap-4">
+          <AlertTriangle className="w-10 h-10" />
+          <p>{error}</p>
+          <div className="flex gap-2">
+              {servers.map(s => (
+                  <button
+                    key={s.serverId}
+                    onClick={() => setCurrentServer(s.serverName)}
+                    className="px-3 py-1 bg-white/10 rounded hover:bg-white/20 text-white text-xs"
+                  >
+                      Switch to {s.serverName}
+                  </button>
+              ))}
+          </div>
+      </div>
+  );
+
   if (!sources || !sources.sources || sources.sources.length === 0) return <div className="aspect-video bg-zinc-900 flex items-center justify-center text-red-400 rounded-lg">Stream Unavailable</div>;
 
   return (
@@ -150,6 +218,7 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
         controls
         crossOrigin="anonymous"
         poster={sources.poster}
+        key={sources.sources[0].url} // Force reload on source change
       >
         <source src={sources.sources[0].url} type="application/x-mpegURL" />
         <source src={sources.sources[0].url} type="video/mp4" />
@@ -196,21 +265,40 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
                 >
                     <div className="flex border-b border-white/10">
                         <button
+                            onClick={() => setActiveTab('server')}
+                            className={`flex-1 p-3 text-xs font-medium flex flex-col items-center justify-center gap-1 ${activeTab === 'server' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                        >
+                            <Server className="w-4 h-4" /> Server
+                        </button>
+                        <button
                             onClick={() => setActiveTab('audio')}
-                            className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'audio' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                            className={`flex-1 p-3 text-xs font-medium flex flex-col items-center justify-center gap-1 ${activeTab === 'audio' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
                         >
                             <Volume2 className="w-4 h-4" /> Audio
                         </button>
                         <button
                             onClick={() => setActiveTab('sub')}
-                            className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'sub' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                            className={`flex-1 p-3 text-xs font-medium flex flex-col items-center justify-center gap-1 ${activeTab === 'sub' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
                         >
                             <Subtitles className="w-4 h-4" /> Subtitles
                         </button>
                     </div>
 
                     <div className="max-h-60 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-white/20">
-                        {activeTab === 'audio' ? (
+                        {activeTab === 'server' && (
+                            <div className="space-y-1">
+                                {servers.map((s, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setCurrentServer(s.serverName)}
+                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${currentServer === s.serverName ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-white/10'}`}
+                                    >
+                                        {s.serverName}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {activeTab === 'audio' && (
                             <div className="space-y-1">
                                 {audioTracks.map((track, i) => (
                                     <button
@@ -222,7 +310,8 @@ export default function AnimePlayer({ episodeId, server = 'hd-1' }: PlayerProps)
                                     </button>
                                 ))}
                             </div>
-                        ) : (
+                        )}
+                        {activeTab === 'sub' && (
                             <div className="space-y-1">
                                 <button
                                     onClick={() => setCurrentSub(null)}
