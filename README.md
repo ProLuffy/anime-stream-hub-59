@@ -1,73 +1,221 @@
-# Welcome to your Lovable project
+AnimeCrew
 
-## Project info
+> A premium-first anime streaming platform with automated ingestion, multi-language playback, AI subtitles, and Telegram-powered uploads.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-## How can I edit this code?
 
-There are several ways of editing your application.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+🏠 Home Experience
 
-Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Overview
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+AnimeCrew opens with a cinematic animated landing inspired by soft anime aesthetics (sakura, night skies, calm motion). This page is accessible to all users and focuses on discovery and immersion.
 
-Follow these steps:
+Features:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Animated intro (AnimeCrew logo → home)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Trending & new-season anime only
 
-# Step 3: Install the necessary dependencies.
-npm i
+Clean watch UI (no clutter)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Fast search & AI-assisted recommendations
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+⭐ Premium Experience
 
-## What technologies are used for this project?
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Premium-Only Features
 
-## How can I deploy this project?
+Premium users unlock advanced controls and AI-powered features designed for power users.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Premium Includes:
 
-## Can I connect a custom domain to my Lovable project?
+AI-generated subtitles in any language (on-demand)
 
-Yes, you can!
+Soft subtitles for downloads (no hardcoding unless requested)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Multi-audio & multi-dub switching without reload
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Faster streams & priority servers
+
+Advanced quality selector (speed vs quality)
+
+
+
+---
+
+🎬 Video Player Architecture
+
+
+
+How Playback Works
+
+Each episode supports multiple variants mapped by:
+
+Series → Episode → Language → Category (Dub/Sub) → Quality
+
+Player Capabilities:
+
+Instant language switch (JP / EN / HI / TA etc.)
+
+Subtitle toggle (manual or AI-generated)
+
+No page reload on stream change
+
+Provider-agnostic (DoodStream / DoomStream)
+
+
+
+---
+
+🧠 AI Subtitle System (Premium)
+
+
+
+Flow
+
+1. User selects a new subtitle language
+
+
+2. Video is sent to Gemini (video-only, no raw audio upload)
+
+
+3. Gemini generates subtitle file (SRT/VTT)
+
+
+4. Subtitle stored in Drive / Object Storage
+
+
+5. Attached as soft subtitle to the stream
+
+
+
+Notes:
+
+No gender/voice mistakes (video-based processing)
+
+Subtitles downloadable only for premium users
+
+Cached to avoid re-generation
+
+
+
+---
+
+⬆️ Upload System (Telegram → Streaming)
+
+
+
+Upload Flow
+
+1. Admin uploads video via Telegram bot
+
+
+2. Bot detects:
+
+Series
+
+Episode number
+
+Language
+
+Dub/Sub
+
+
+
+3. Video uploaded to DoodStream
+
+
+4. Backend updates episode mapping
+
+
+
+Auto-Replace Logic:
+
+(seriesId + episode + language + category + quality)
+
+If already exists → old stream replaced automatically.
+
+
+---
+
+🧑‍💼 Admin Dashboard
+
+
+
+Admin Capabilities
+
+Series & episode management
+
+Upload job tracking
+
+Replace / rollback episodes
+
+Premium user control
+
+Provider & API configuration
+
+
+Built with React and consumes the Node.js backend APIs.
+
+
+---
+
+🗄️ Storage & Streaming
+
+
+
+Videos: DoodStream / DoomStream
+
+Subtitles: Google Drive / Object Storage
+
+Metadata: MongoDB
+
+Caching: CDN + Edge cache
+
+
+
+---
+
+⚙️ Tech Stack
+
+Frontend: React + Vite
+
+Backend: Node.js + Express
+
+Database: MongoDB
+
+AI: Gemini (video-based subtitle generation)
+
+Bot: Telegram (Webhook + Polling)
+
+
+
+---
+
+📌 Philosophy
+
+AnimeCrew is built for quality over quantity:
+
+No clutter
+
+No forced ads
+
+No reloads
+
+Premium-first design
+
+
+
+---
+
+> Replace images in ./assets/ with your own visuals. This README is structured for GitHub, investors, and collaborators.
