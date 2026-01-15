@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Plus, Share2, Star, Calendar, Tv, Mic, ChevronDown, ChevronUp, Loader2, ExternalLink, Info } from 'lucide-react';
+import { Play, Plus, Check, Share2, Star, Calendar, Tv, Mic, ChevronDown, ChevronUp, Loader2, Info, Bookmark, BookmarkCheck } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { useAnimeInfo, useEpisodes } from '@/hooks/useAnime';
+import { useAuth } from '@/contexts/AuthContext';
 import Particles from '@/components/effects/Particles';
 import Disclaimer from '@/components/ui/Disclaimer';
+import CommentSection from '@/components/comments/CommentSection';
+import { toast } from 'sonner';
 
 export default function AnimeDetailsLive() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
+  const { isLoggedIn, addToWatchlist, removeFromWatchlist, isInWatchlist } = useAuth();
 
   const { data: animeData, isLoading: infoLoading, error: infoError } = useAnimeInfo(id || '');
   const { data: episodesData, isLoading: episodesLoading } = useEpisodes(id || '');
+
+  const inWatchlist = id ? isInWatchlist(id) : false;
 
   const anime = animeData?.data?.anime;
   const moreInfo = anime?.moreInfo;
@@ -169,14 +175,42 @@ export default function AnimeDetailsLive() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="btn-ghost flex items-center gap-2"
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        navigate('/login');
+                        return;
+                      }
+                      if (id) {
+                        if (inWatchlist) {
+                          removeFromWatchlist(id);
+                          toast.success('Removed from watchlist');
+                        } else {
+                          addToWatchlist(id);
+                          toast.success('Added to watchlist');
+                        }
+                      }
+                    }}
+                    className={`btn-ghost flex items-center gap-2 ${inWatchlist ? 'bg-primary/20 text-primary' : ''}`}
                   >
-                    <Plus className="w-5 h-5" />
-                    Add to List
+                    {inWatchlist ? (
+                      <>
+                        <BookmarkCheck className="w-5 h-5" />
+                        In Watchlist
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="w-5 h-5" />
+                        Add to List
+                      </>
+                    )}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Link copied to clipboard');
+                    }}
                     className="p-3 rounded-full bg-secondary/50 hover:bg-secondary transition-colors"
                   >
                     <Share2 className="w-5 h-5" />
@@ -276,6 +310,15 @@ export default function AnimeDetailsLive() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Comments Section */}
+      {id && (
+        <section className="py-8 border-t border-border">
+          <div className="container mx-auto px-4">
+            <CommentSection animeId={id} />
           </div>
         </section>
       )}
