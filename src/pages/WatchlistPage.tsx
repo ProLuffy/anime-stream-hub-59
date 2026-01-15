@@ -1,16 +1,115 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Play, Share2 } from 'lucide-react';
+import { Trash2, Play, Share2, BookmarkX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
-import { mockAnimeList } from '@/data/animeData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAnimeInfo } from '@/hooks/useAnime';
+import { toast } from 'sonner';
+
+// Individual watchlist item component
+function WatchlistItem({ animeId, index, onRemove }: { animeId: string; index: number; onRemove: () => void }) {
+  const { data: anime, isLoading } = useAnimeInfo(animeId);
+
+  if (isLoading) {
+    return (
+      <div className="glass-card p-4 flex items-center gap-4 animate-pulse">
+        <div className="w-20 h-28 bg-secondary rounded-lg" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-secondary rounded w-3/4" />
+          <div className="h-4 bg-secondary rounded w-1/2" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!anime?.anime?.info) return null;
+
+  const info = anime.anime.info;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="glass-card p-4 flex items-center gap-4 group"
+    >
+      <Link to={`/anime/${animeId}`} className="flex items-center gap-4 flex-1 min-w-0">
+        <img
+          src={info.poster}
+          alt={info.name}
+          className="w-20 h-28 object-cover rounded-lg"
+        />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+            {info.name}
+          </h3>
+          {info.jname && (
+            <p className="text-sm text-muted-foreground truncate font-jp">
+              {info.jname}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+            <span className="px-2 py-0.5 rounded-full text-xs bg-primary/20 text-primary">
+              {info.stats?.type || 'TV'}
+            </span>
+            <span>•</span>
+            <span>★ {info.stats?.rating || 'N/A'}</span>
+            <span>•</span>
+            <span>{info.stats?.episodes?.sub || '?'} eps</span>
+          </div>
+        </div>
+      </Link>
+      <div className="flex items-center gap-2">
+        <Link to={`/anime/${animeId}`}>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="p-2.5 rounded-full bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <Play className="w-4 h-4" fill="currentColor" />
+          </motion.button>
+        </Link>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.preventDefault();
+            onRemove();
+          }}
+          className="p-2.5 rounded-full bg-secondary hover:bg-destructive/20 hover:text-destructive transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function WatchlistPage() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user, removeFromWatchlist } = useAuth();
 
-  // Mock watchlist - in real app, fetch from user data
-  const watchlist = mockAnimeList.slice(0, 4);
+  const handleShare = async () => {
+    if (navigator.share && user) {
+      try {
+        await navigator.share({
+          title: `${user.username}'s Watchlist`,
+          text: `Check out my anime watchlist on AniCrew!`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        // User cancelled
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
+  const handleRemove = (animeId: string) => {
+    removeFromWatchlist(animeId);
+    toast.success('Removed from watchlist');
+  };
 
   if (!isLoggedIn) {
     return (
@@ -36,6 +135,8 @@ export default function WatchlistPage() {
     );
   }
 
+  const watchlist = user?.watchlist || [];
+
   return (
     <div className="min-h-screen theme-transition">
       <Header />
@@ -54,79 +155,39 @@ export default function WatchlistPage() {
                 {watchlist.length} titles saved
               </p>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="btn-ghost flex items-center gap-2"
-            >
-              <Share2 className="w-4 h-4" />
-              Share List
-            </motion.button>
+            {watchlist.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleShare}
+                className="btn-ghost flex items-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                Share List
+              </motion.button>
+            )}
           </motion.div>
 
           {/* Watchlist Grid */}
           {watchlist.length > 0 ? (
             <div className="grid gap-4">
-              {watchlist.map((anime, index) => (
-                <motion.div
-                  key={anime.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="glass-card p-4 flex items-center gap-4 group"
-                >
-                  <Link to={`/anime/${anime.id}`} className="flex items-center gap-4 flex-1 min-w-0">
-                    <img
-                      src={anime.poster}
-                      alt={anime.title}
-                      className="w-20 h-28 object-cover rounded-lg"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                        {anime.title}
-                      </h3>
-                      {anime.titleJp && (
-                        <p className="text-sm text-muted-foreground truncate font-jp">
-                          {anime.titleJp}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          anime.type === 'anime' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent'
-                        }`}>
-                          {anime.type}
-                        </span>
-                        <span>•</span>
-                        <span>★ {anime.rating}</span>
-                        <span>•</span>
-                        <span>{anime.episodes.length} eps</span>
-                      </div>
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2.5 rounded-full bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      <Play className="w-4 h-4" fill="currentColor" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2.5 rounded-full bg-secondary hover:bg-destructive/20 hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </motion.div>
+              {watchlist.map((animeId, index) => (
+                <WatchlistItem
+                  key={animeId}
+                  animeId={animeId}
+                  index={index}
+                  onRemove={() => handleRemove(animeId)}
+                />
               ))}
             </div>
           ) : (
             <div className="glass-card p-12 text-center">
-              <Play className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Your watchlist is empty</p>
-              <Link to="/anime" className="btn-ghost mt-4 inline-flex">
+              <BookmarkX className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4">Your watchlist is empty</p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Start adding anime to your watchlist by clicking the bookmark icon on any anime
+              </p>
+              <Link to="/category/top-airing" className="btn-ghost inline-flex">
                 Browse Anime
               </Link>
             </div>
