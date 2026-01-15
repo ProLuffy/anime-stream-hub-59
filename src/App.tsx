@@ -11,7 +11,9 @@ import CinematicIntro from "@/components/intro/CinematicIntro";
 import Index from "./pages/Index";
 import AnimeDetailsLive from "./pages/AnimeDetailsLive";
 import WatchPageLive from "./pages/WatchPageLive";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/auth/Login";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AnimeDetails from "./pages/anime/AnimeDetails";
 import BrowsePageLive from "./pages/BrowsePageLive";
 import WatchlistPage from "./pages/WatchlistPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -45,9 +47,10 @@ function AppContent() {
       {showIntro && <CinematicIntro onComplete={handleIntroComplete} />}
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/anime/:id" element={<AnimeDetailsLive />} />
-        <Route path="/watch/:id/:episodeId" element={<WatchPageLive />} />
+        <Route path="/anime/:id" element={<AnimeDetails />} />
+        {/* <Route path="/watch/:id/:episodeId" element={<WatchPageLive />} /> */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/genre/:genre" element={<GenrePage />} />

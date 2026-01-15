@@ -58,7 +58,7 @@ export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) 
           {/* Poster */}
           <img
             src={anime.poster}
-            alt={anime.name}
+            alt={anime.title}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
@@ -125,11 +125,11 @@ export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) 
           {/* Bottom Info (Always visible) */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <h3 className="font-bold text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors">
-              {anime.name}
+              {anime.title}
             </h3>
-            {anime.jname && (
+            {anime.alternativeTitle && (
               <p className="text-xs text-muted-foreground line-clamp-1 font-jp mt-0.5">
-                {anime.jname}
+                {anime.alternativeTitle}
               </p>
             )}
             {anime.duration && (

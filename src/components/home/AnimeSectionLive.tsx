@@ -66,7 +66,8 @@ function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }
 
 export function TrendingSectionLive() {
   const { data, isLoading } = useHomeData();
-  const trending = data?.data?.trendingAnimes || [];
+  // Fixed key mapping: API returns 'trending', not 'trendingAnimes'
+  const trending = data?.data?.trending || [];
   
   return (
     <AnimeSectionLive
@@ -81,7 +82,8 @@ export function TrendingSectionLive() {
 
 export function TopAiringSectionLive() {
   const { data, isLoading } = useHomeData();
-  const topAiring = data?.data?.topAiringAnimes || [];
+  // Fixed key mapping: API returns 'topAiring'
+  const topAiring = data?.data?.topAiring || [];
   
   return (
     <AnimeSectionLive
@@ -96,7 +98,8 @@ export function TopAiringSectionLive() {
 
 export function LatestEpisodesSectionLive() {
   const { data, isLoading } = useHomeData();
-  const latest = data?.data?.latestEpisodeAnimes || [];
+  // Fixed key mapping: API returns 'latestEpisode'
+  const latest = data?.data?.latestEpisode || [];
   
   return (
     <AnimeSectionLive
@@ -111,7 +114,8 @@ export function LatestEpisodesSectionLive() {
 
 export function UpcomingSectionLive() {
   const { data, isLoading } = useHomeData();
-  const upcoming = data?.data?.topUpcomingAnimes || [];
+  // Fixed key mapping: API returns 'topUpcoming'
+  const upcoming = data?.data?.topUpcoming || [];
   
   return (
     <AnimeSectionLive
