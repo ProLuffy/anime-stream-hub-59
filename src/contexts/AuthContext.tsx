@@ -19,6 +19,11 @@ interface User {
   watchlist: string[];
   watchHistory: WatchHistoryItem[];
   createdAt: number;
+  // Premium features
+  customBadge?: string;
+  emojiBadge?: string;
+  premiumSince?: number;
+  premiumPlan?: string;
 }
 
 interface AuthContextType {
