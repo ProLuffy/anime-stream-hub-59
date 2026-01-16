@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/layout/Header';
 import HeroSectionLive from '@/components/home/HeroSectionLive';
+import ContinueWatchingSection from '@/components/home/ContinueWatchingSection';
 import { 
   TrendingSectionLive, 
   TopAiringSectionLive, 
@@ -9,8 +10,11 @@ import {
   MostPopularSectionLive
 } from '@/components/home/AnimeSectionLive';
 import { FooterDisclaimer } from '@/components/ui/Disclaimer';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Index() {
+  const { isLoggedIn } = useAuth();
+  
   return (
     <div className="min-h-screen theme-transition">
       <Header />
@@ -23,6 +27,9 @@ export default function Index() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
+          {/* Continue Watching - only for logged in users */}
+          {isLoggedIn && <ContinueWatchingSection />}
+          
           <TrendingSectionLive />
           <TopAiringSectionLive />
           <LatestEpisodesSectionLive />
@@ -50,7 +57,7 @@ export default function Index() {
             </div>
             <FooterDisclaimer />
             <div className="text-center text-xs text-muted-foreground mt-6">
-              © 2024 AniCrew. All rights reserved.
+              © 2026 AniCrew. All rights reserved.
             </div>
           </div>
         </footer>

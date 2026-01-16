@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, User, Settings, LogOut, Crown, Bell } from 'lucide-react';
+import { Search, Menu, X, User, Settings, LogOut, Crown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme, themes } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchModalLive from '@/components/search/SearchModalLive';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 export default function Header() {
   const { theme, setTheme, currentTheme } = useTheme();
@@ -105,6 +106,9 @@ export default function Header() {
                 </AnimatePresence>
               </div>
 
+              {/* Notifications */}
+              {isLoggedIn && <NotificationBell />}
+
               {/* User Menu */}
               {isLoggedIn ? (
                 <div className="relative">
@@ -140,14 +144,14 @@ export default function Header() {
                           <p className="font-semibold">{user?.username}</p>
                           <p className="text-xs text-muted-foreground">{user?.email}</p>
                         </div>
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
+                        <Link
+                          to="/profile"
+                          onClick={() => setProfileOpen(false)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors"
+                        >
                           <User className="w-4 h-4" />
                           <span className="text-sm">Profile</span>
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors">
-                          <Bell className="w-4 h-4" />
-                          <span className="text-sm">Notifications</span>
-                        </button>
+                        </Link>
                         <Link
                           to="/settings"
                           onClick={() => setProfileOpen(false)}

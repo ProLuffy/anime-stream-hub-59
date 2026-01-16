@@ -66,7 +66,8 @@ function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }
 
 export function TrendingSectionLive() {
   const { data, isLoading } = useHomeData();
-  const trending = data?.data?.trendingAnimes || [];
+  // Try multiple possible data paths
+  const trending = data?.data?.trendingAnimes || data?.trendingAnimes || [];
   
   return (
     <AnimeSectionLive
@@ -81,7 +82,7 @@ export function TrendingSectionLive() {
 
 export function TopAiringSectionLive() {
   const { data, isLoading } = useHomeData();
-  const topAiring = data?.data?.topAiringAnimes || [];
+  const topAiring = data?.data?.topAiringAnimes || data?.data?.featuredAnimes?.topAiringAnimes || data?.topAiringAnimes || [];
   
   return (
     <AnimeSectionLive
@@ -96,7 +97,7 @@ export function TopAiringSectionLive() {
 
 export function LatestEpisodesSectionLive() {
   const { data, isLoading } = useHomeData();
-  const latest = data?.data?.latestEpisodeAnimes || [];
+  const latest = data?.data?.latestEpisodeAnimes || data?.data?.latestEpisodes || data?.latestEpisodeAnimes || [];
   
   return (
     <AnimeSectionLive
@@ -111,7 +112,7 @@ export function LatestEpisodesSectionLive() {
 
 export function UpcomingSectionLive() {
   const { data, isLoading } = useHomeData();
-  const upcoming = data?.data?.topUpcomingAnimes || [];
+  const upcoming = data?.data?.topUpcomingAnimes || data?.topUpcomingAnimes || [];
   
   return (
     <AnimeSectionLive
@@ -125,8 +126,11 @@ export function UpcomingSectionLive() {
 }
 
 export function MostPopularSectionLive() {
-  const { data, isLoading } = useCategory('most-popular');
-  const popular = data?.data?.animes || [];
+  const { data, isLoading } = useHomeData();
+  // First try home data, then fallback to category
+  const popular = data?.data?.mostPopularAnimes || 
+                  data?.data?.featuredAnimes?.mostPopularAnimes || 
+                  data?.mostPopularAnimes || [];
   
   return (
     <AnimeSectionLive
