@@ -4,7 +4,7 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AnimeCardLive from '@/components/anime/AnimeCardLive';
 import { useHomeData, useCategory } from '@/hooks/useAnime';
-import { AnimeResult } from '@/lib/api';
+import { AnimeResult, HomeData } from '@/lib/api';
 
 interface AnimeSectionLiveProps {
   title: string;
@@ -12,6 +12,27 @@ interface AnimeSectionLiveProps {
   animeList: AnimeResult[];
   viewAllLink?: string;
   isLoading?: boolean;
+}
+
+// Helper to safely extract anime array from various data structures
+function getAnimeArray(data: HomeData | undefined, ...paths: string[]): AnimeResult[] {
+  if (!data) return [];
+  
+  for (const path of paths) {
+    let value: any = data;
+    const parts = path.split('.');
+    
+    for (const part of parts) {
+      value = value?.[part];
+      if (!value) break;
+    }
+    
+    if (Array.isArray(value) && value.length > 0) {
+      return value;
+    }
+  }
+  
+  return [];
 }
 
 function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }: AnimeSectionLiveProps) {
@@ -66,8 +87,11 @@ function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }
 
 export function TrendingSectionLive() {
   const { data, isLoading } = useHomeData();
-  // Try multiple possible data paths
-  const trending = data?.data?.trendingAnimes || data?.trendingAnimes || [];
+  const trending = getAnimeArray(data, 
+    'data.trendingAnimes', 
+    'trendingAnimes',
+    'data.spotlightAnimes'
+  );
   
   return (
     <AnimeSectionLive
@@ -82,7 +106,11 @@ export function TrendingSectionLive() {
 
 export function TopAiringSectionLive() {
   const { data, isLoading } = useHomeData();
-  const topAiring = data?.data?.topAiringAnimes || data?.data?.featuredAnimes?.topAiringAnimes || data?.topAiringAnimes || [];
+  const topAiring = getAnimeArray(data,
+    'data.topAiringAnimes',
+    'data.featuredAnimes.topAiringAnimes',
+    'topAiringAnimes'
+  );
   
   return (
     <AnimeSectionLive
@@ -97,7 +125,11 @@ export function TopAiringSectionLive() {
 
 export function LatestEpisodesSectionLive() {
   const { data, isLoading } = useHomeData();
-  const latest = data?.data?.latestEpisodeAnimes || data?.data?.latestEpisodes || data?.latestEpisodeAnimes || [];
+  const latest = getAnimeArray(data,
+    'data.latestEpisodeAnimes',
+    'data.latestEpisodes',
+    'latestEpisodeAnimes'
+  );
   
   return (
     <AnimeSectionLive
@@ -112,7 +144,10 @@ export function LatestEpisodesSectionLive() {
 
 export function UpcomingSectionLive() {
   const { data, isLoading } = useHomeData();
-  const upcoming = data?.data?.topUpcomingAnimes || data?.topUpcomingAnimes || [];
+  const upcoming = getAnimeArray(data,
+    'data.topUpcomingAnimes',
+    'topUpcomingAnimes'
+  );
   
   return (
     <AnimeSectionLive
@@ -127,10 +162,11 @@ export function UpcomingSectionLive() {
 
 export function MostPopularSectionLive() {
   const { data, isLoading } = useHomeData();
-  // First try home data, then fallback to category
-  const popular = data?.data?.mostPopularAnimes || 
-                  data?.data?.featuredAnimes?.mostPopularAnimes || 
-                  data?.mostPopularAnimes || [];
+  const popular = getAnimeArray(data,
+    'data.mostPopularAnimes',
+    'data.featuredAnimes.mostPopularAnimes',
+    'mostPopularAnimes'
+  );
   
   return (
     <AnimeSectionLive

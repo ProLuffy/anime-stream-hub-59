@@ -4,7 +4,6 @@ import {
   searchAnime,
   fetchAnimeInfo,
   fetchEpisodes,
-  fetchEpisodeServers,
   fetchEpisodeSources,
   fetchCategory,
 } from '@/lib/api';
@@ -45,16 +44,6 @@ export function useEpisodes(animeId: string) {
     queryFn: () => fetchEpisodes(animeId),
     enabled: !!animeId,
     staleTime: 10 * 60 * 1000,
-  });
-}
-
-// Hook for episode servers
-export function useEpisodeServers(episodeId: string) {
-  return useQuery({
-    queryKey: ['servers', episodeId],
-    queryFn: () => fetchEpisodeServers(episodeId),
-    enabled: !!episodeId,
-    staleTime: 5 * 60 * 1000,
   });
 }
 
