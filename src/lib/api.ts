@@ -5,25 +5,30 @@ const API_BASE = 'https://hianime-api-seven-teal.vercel.app';
 
 export interface AnimeResult {
   id: string;
-  name: string;
+  name?: string;
+  title?: string; // API returns title instead of name
   jname?: string;
+  alternativeTitle?: string; // Japanese title from API
   poster: string;
   type?: string;
+  quality?: string;
   episodes?: {
     sub?: number;
     dub?: number;
+    eps?: number;
   };
   duration?: string;
   rating?: string;
   rank?: number;
   description?: string;
+  synopsis?: string; // API returns synopsis instead of description
   otherInfo?: string[];
+  aired?: string;
 }
 
 export interface SpotlightAnime extends AnimeResult {
   rank: number;
-  description: string;
-  otherInfo: string[];
+  synopsis: string;
 }
 
 export interface AnimeInfo {
@@ -81,6 +86,16 @@ export interface StreamingSource {
 export interface HomeData {
   success: boolean;
   data: {
+    // New API structure (your API)
+    spotlight?: SpotlightAnime[];
+    trending?: AnimeResult[];
+    topAiring?: AnimeResult[];
+    latestEpisodes?: AnimeResult[];
+    mostPopular?: AnimeResult[];
+    mostFavorite?: AnimeResult[];
+    latestCompleted?: AnimeResult[];
+    topUpcoming?: AnimeResult[];
+    // Old API structure (fallback)
     spotlightAnimes?: SpotlightAnime[];
     trendingAnimes?: AnimeResult[];
     latestEpisodeAnimes?: AnimeResult[];
@@ -99,14 +114,7 @@ export interface HomeData {
       topAiringAnimes?: AnimeResult[];
       mostPopularAnimes?: AnimeResult[];
     };
-    latestEpisodes?: AnimeResult[];
   };
-  // Direct properties for alternate API structures
-  trendingAnimes?: AnimeResult[];
-  topAiringAnimes?: AnimeResult[];
-  latestEpisodeAnimes?: AnimeResult[];
-  topUpcomingAnimes?: AnimeResult[];
-  mostPopularAnimes?: AnimeResult[];
 }
 
 // Helper function to make API calls

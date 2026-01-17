@@ -9,6 +9,15 @@ interface AnimeCardLiveProps {
   index?: number;
 }
 
+// Helper functions for API field compatibility
+function getAnimeName(anime: AnimeResult): string {
+  return anime.name || anime.title || 'Unknown';
+}
+
+function getAnimeJName(anime: AnimeResult): string {
+  return anime.jname || anime.alternativeTitle || '';
+}
+
 export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) {
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -37,6 +46,10 @@ export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) 
   // Extract episode counts
   const subEps = anime.episodes?.sub || 0;
   const dubEps = anime.episodes?.dub || 0;
+  
+  // Get display values
+  const animeName = getAnimeName(anime);
+  const animeJName = getAnimeJName(anime);
 
   return (
     <motion.div
@@ -58,7 +71,7 @@ export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) 
           {/* Poster */}
           <img
             src={anime.poster}
-            alt={anime.name}
+            alt={animeName}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
@@ -125,11 +138,11 @@ export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) 
           {/* Bottom Info (Always visible) */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <h3 className="font-bold text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors">
-              {anime.name}
+              {animeName}
             </h3>
-            {anime.jname && (
+            {animeJName && (
               <p className="text-xs text-muted-foreground line-clamp-1 font-jp mt-0.5">
-                {anime.jname}
+                {animeJName}
               </p>
             )}
             {anime.duration && (

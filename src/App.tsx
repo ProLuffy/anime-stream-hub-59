@@ -41,8 +41,8 @@ function AppContent() {
     setIntroComplete(true);
   };
 
-  // Show intro only on first visit
-  const showIntro = !isLoading && !hasSeenIntro && !introComplete;
+  // Show intro only on first visit - disabled for now to show content immediately
+  const showIntro = false; // !isLoading && !hasSeenIntro && !introComplete;
 
   return (
     <>

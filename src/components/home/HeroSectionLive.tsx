@@ -5,12 +5,26 @@ import { useNavigate } from 'react-router-dom';
 import { useHomeData } from '@/hooks/useAnime';
 import Particles from '@/components/effects/Particles';
 
+// Helper to get display name from anime object
+function getAnimeName(anime: any): string {
+  return anime?.name || anime?.title || 'Unknown';
+}
+
+function getAnimeJName(anime: any): string {
+  return anime?.jname || anime?.alternativeTitle || '';
+}
+
+function getAnimeDescription(anime: any): string {
+  return anime?.description || anime?.synopsis || '';
+}
+
 export default function HeroSectionLive() {
   const { data, isLoading, error } = useHomeData();
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
 
-  const spotlightAnimes = data?.data?.spotlightAnimes || [];
+  // Support both API structures: data.spotlight or data.spotlightAnimes
+  const spotlightAnimes = data?.data?.spotlight || data?.data?.spotlightAnimes || [];
   const current = spotlightAnimes[currentIndex];
 
   useEffect(() => {
@@ -45,6 +59,10 @@ export default function HeroSectionLive() {
     );
   }
 
+  const animeName = getAnimeName(current);
+  const animeJName = getAnimeJName(current);
+  const animeDescription = getAnimeDescription(current);
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background */}
@@ -59,7 +77,7 @@ export default function HeroSectionLive() {
         >
           <img
             src={current.poster}
-            alt={current.name}
+            alt={animeName}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
@@ -101,18 +119,18 @@ export default function HeroSectionLive() {
                 transition={{ delay: 0.3 }}
                 className="text-4xl md:text-6xl font-bold mb-2 text-glow"
               >
-                {current.name}
+                {animeName}
               </motion.h1>
 
               {/* Japanese Title */}
-              {current.jname && (
+              {animeJName && (
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   className="text-xl md:text-2xl text-muted-foreground font-jp mb-6"
                 >
-                  {current.jname}
+                  {animeJName}
                 </motion.p>
               )}
 
@@ -123,14 +141,36 @@ export default function HeroSectionLive() {
                 transition={{ delay: 0.5 }}
                 className="flex flex-wrap items-center gap-3 mb-6"
               >
-                {current.otherInfo?.map((info: string, i: number) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 rounded-full bg-secondary/50 text-sm"
-                  >
-                    {info}
+                {current.type && (
+                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium">
+                    {current.type}
                   </span>
-                ))}
+                )}
+                {current.quality && (
+                  <span className="px-3 py-1 rounded-full bg-secondary/50 text-sm">
+                    {current.quality}
+                  </span>
+                )}
+                {current.duration && (
+                  <span className="px-3 py-1 rounded-full bg-secondary/50 text-sm">
+                    {current.duration}
+                  </span>
+                )}
+                {current.aired && (
+                  <span className="px-3 py-1 rounded-full bg-secondary/50 text-sm">
+                    {current.aired}
+                  </span>
+                )}
+                {current.episodes?.sub && (
+                  <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm">
+                    SUB: {current.episodes.sub}
+                  </span>
+                )}
+                {current.episodes?.dub && current.episodes.dub > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-sm">
+                    DUB: {current.episodes.dub}
+                  </span>
+                )}
               </motion.div>
 
               {/* Description */}
@@ -140,7 +180,7 @@ export default function HeroSectionLive() {
                 transition={{ delay: 0.6 }}
                 className="text-base md:text-lg text-muted-foreground line-clamp-3 mb-8"
               >
-                {current.description}
+                {animeDescription}
               </motion.p>
 
               {/* CTA Buttons */}

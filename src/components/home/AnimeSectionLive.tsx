@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AnimeCardLive from '@/components/anime/AnimeCardLive';
-import { useHomeData, useCategory } from '@/hooks/useAnime';
+import { useHomeData } from '@/hooks/useAnime';
 import { AnimeResult, HomeData } from '@/lib/api';
 
 interface AnimeSectionLiveProps {
@@ -87,10 +87,11 @@ function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }
 
 export function TrendingSectionLive() {
   const { data, isLoading } = useHomeData();
+  // Support both API structures: data.trending or data.trendingAnimes
   const trending = getAnimeArray(data, 
+    'data.trending',
     'data.trendingAnimes', 
-    'trendingAnimes',
-    'data.spotlightAnimes'
+    'data.spotlight' // fallback to spotlight if trending not available
   );
   
   return (
@@ -107,9 +108,10 @@ export function TrendingSectionLive() {
 export function TopAiringSectionLive() {
   const { data, isLoading } = useHomeData();
   const topAiring = getAnimeArray(data,
+    'data.topAiring',
     'data.topAiringAnimes',
     'data.featuredAnimes.topAiringAnimes',
-    'topAiringAnimes'
+    'data.spotlight' // fallback
   );
   
   return (
@@ -126,9 +128,9 @@ export function TopAiringSectionLive() {
 export function LatestEpisodesSectionLive() {
   const { data, isLoading } = useHomeData();
   const latest = getAnimeArray(data,
-    'data.latestEpisodeAnimes',
     'data.latestEpisodes',
-    'latestEpisodeAnimes'
+    'data.latestEpisodeAnimes',
+    'data.spotlight' // fallback
   );
   
   return (
@@ -145,8 +147,8 @@ export function LatestEpisodesSectionLive() {
 export function UpcomingSectionLive() {
   const { data, isLoading } = useHomeData();
   const upcoming = getAnimeArray(data,
-    'data.topUpcomingAnimes',
-    'topUpcomingAnimes'
+    'data.topUpcoming',
+    'data.topUpcomingAnimes'
   );
   
   return (
@@ -163,9 +165,10 @@ export function UpcomingSectionLive() {
 export function MostPopularSectionLive() {
   const { data, isLoading } = useHomeData();
   const popular = getAnimeArray(data,
+    'data.mostPopular',
     'data.mostPopularAnimes',
     'data.featuredAnimes.mostPopularAnimes',
-    'mostPopularAnimes'
+    'data.trending' // fallback to trending
   );
   
   return (
