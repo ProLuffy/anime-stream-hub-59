@@ -1,52 +1,7 @@
-// HiAnime API Service - Metadata Aggregator
-// This service fetches publicly available anime metadata from third-party APIs
-// No video hosting or streaming is performed by this application
+// HiAnime API Service - Using your custom API
+// API Base: /api/v1
 
-// Multiple API endpoints for fallback
-const API_ENDPOINTS = [
-  'https://aniwatch-api-gamma.vercel.app',
-  'https://aniwatch-api-eight.vercel.app', 
-  'https://hianime-api.vercel.app',
-  'https://api.consumet.org/anime/zoro',
-];
-
-let currentApiIndex = 0;
-let currentApiBase = API_ENDPOINTS[0];
-
-// Helper to try different API endpoints
-async function fetchWithFallback(path: string, options?: RequestInit): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  // Try current API first
-  const apis = [
-    currentApiBase,
-    ...API_ENDPOINTS.filter(api => api !== currentApiBase)
-  ];
-  
-  for (const apiBase of apis) {
-    try {
-      const fullPath = path.startsWith('/api') ? path : `/api/v2/hianime${path}`;
-      const res = await fetch(`${apiBase}${fullPath}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
-      });
-      
-      if (res.ok) {
-        // Update current working API
-        currentApiBase = apiBase;
-        return res;
-      }
-    } catch (err) {
-      lastError = err as Error;
-      console.warn(`API ${apiBase} failed, trying next...`);
-    }
-  }
-  
-  throw lastError || new Error('All API endpoints failed');
-}
+const API_BASE = 'https://hianime-api-seven-teal.vercel.app';
 
 export interface AnimeResult {
   id: string;
@@ -126,28 +81,27 @@ export interface StreamingSource {
 export interface HomeData {
   success: boolean;
   data: {
-    spotlightAnimes: SpotlightAnime[];
-    trendingAnimes: AnimeResult[];
-    latestEpisodeAnimes: AnimeResult[];
-    topUpcomingAnimes: AnimeResult[];
-    top10Animes: {
+    spotlightAnimes?: SpotlightAnime[];
+    trendingAnimes?: AnimeResult[];
+    latestEpisodeAnimes?: AnimeResult[];
+    topUpcomingAnimes?: AnimeResult[];
+    top10Animes?: {
       today: AnimeResult[];
       week: AnimeResult[];
       month: AnimeResult[];
     };
-    topAiringAnimes: AnimeResult[];
-    mostPopularAnimes: AnimeResult[];
-    mostFavoriteAnimes: AnimeResult[];
-    latestCompletedAnimes: AnimeResult[];
-    genres: string[];
-    // Alternate API structure
+    topAiringAnimes?: AnimeResult[];
+    mostPopularAnimes?: AnimeResult[];
+    mostFavoriteAnimes?: AnimeResult[];
+    latestCompletedAnimes?: AnimeResult[];
+    genres?: string[];
     featuredAnimes?: {
       topAiringAnimes?: AnimeResult[];
       mostPopularAnimes?: AnimeResult[];
     };
     latestEpisodes?: AnimeResult[];
   };
-  // Direct properties for alternate API
+  // Direct properties for alternate API structures
   trendingAnimes?: AnimeResult[];
   topAiringAnimes?: AnimeResult[];
   latestEpisodeAnimes?: AnimeResult[];
@@ -155,77 +109,77 @@ export interface HomeData {
   mostPopularAnimes?: AnimeResult[];
 }
 
-// Fetch trending/home anime
-export async function fetchHomeData(): Promise<HomeData> {
-  const res = await fetchWithFallback('/home');
-  if (!res.ok) throw new Error('Failed to fetch home data');
+// Helper function to make API calls
+async function apiFetch(endpoint: string) {
+  const url = `${API_BASE}/api/v1${endpoint}`;
+  console.log('Fetching:', url);
+  
+  const res = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+  
   return res.json();
+}
+
+// Fetch home data (trending, spotlight, top airing, latest episodes)
+export async function fetchHomeData(): Promise<HomeData> {
+  return apiFetch('/home');
 }
 
 // Search anime
 export async function searchAnime(query: string, page = 1) {
-  const res = await fetchWithFallback(`/search?q=${encodeURIComponent(query)}&page=${page}`);
-  if (!res.ok) throw new Error('Failed to search anime');
-  return res.json();
+  return apiFetch(`/search?keyword=${encodeURIComponent(query)}&page=${page}`);
 }
 
 // Fetch anime details
 export async function fetchAnimeInfo(animeId: string) {
-  const res = await fetchWithFallback(`/anime/${animeId}`);
-  if (!res.ok) throw new Error('Failed to fetch anime info');
-  return res.json();
+  return apiFetch(`/anime/${animeId}`);
 }
 
 // Fetch episode list
 export async function fetchEpisodes(animeId: string) {
-  const res = await fetchWithFallback(`/anime/${animeId}/episodes`);
-  if (!res.ok) throw new Error('Failed to fetch episodes');
-  return res.json();
-}
-
-// Fetch episode streaming servers
-export async function fetchEpisodeServers(episodeId: string) {
-  const res = await fetchWithFallback(`/episode/servers?animeEpisodeId=${episodeId}`);
-  if (!res.ok) throw new Error('Failed to fetch servers');
-  return res.json();
+  return apiFetch(`/episodes/${animeId}`);
 }
 
 // Fetch episode streaming sources
-export async function fetchEpisodeSources(episodeId: string, server = 'hd-1', category = 'sub') {
-  const res = await fetchWithFallback(`/episode/sources?animeEpisodeId=${episodeId}&server=${server}&category=${category}`);
-  if (!res.ok) throw new Error('Failed to fetch sources');
-  return res.json();
+export async function fetchEpisodeSources(episodeId: string, server = 'vidcloud', category = 'sub') {
+  return apiFetch(`/stream?id=${episodeId}&server=${server}&type=${category}`);
 }
 
 // Fetch category (e.g., top-airing, most-popular, etc.)
 export async function fetchCategory(category: string, page = 1) {
-  const res = await fetchWithFallback(`/${category}?page=${page}`);
-  if (!res.ok) throw new Error(`Failed to fetch ${category}`);
-  return res.json();
+  return apiFetch(`/${category}?page=${page}`);
 }
 
 // Fetch genre list
 export async function fetchGenres() {
-  const res = await fetchWithFallback('/genre');
-  if (!res.ok) throw new Error('Failed to fetch genres');
-  return res.json();
+  return apiFetch('/genre');
 }
 
 // Fetch anime by genre
 export async function fetchByGenre(genre: string, page = 1) {
-  const res = await fetchWithFallback(`/genre/${genre}?page=${page}`);
-  if (!res.ok) throw new Error('Failed to fetch genre anime');
-  return res.json();
+  return apiFetch(`/genre/${genre}?page=${page}`);
 }
 
-// Fetch schedule
+// Fetch AZ list
+export async function fetchAZList(letter: string, page = 1) {
+  return apiFetch(`/az-list/${letter}?page=${page}`);
+}
+
+// Fetch schedule (not in v1 API but keeping for compatibility - will return empty)
 export async function fetchSchedule(date: string) {
-  const res = await fetchWithFallback(`/schedule?date=${date}`);
-  if (!res.ok) throw new Error('Failed to fetch schedule');
-  return res.json();
+  // The v1 API doesn't have a schedule endpoint
+  // Return empty data structure
+  return { success: true, data: { scheduledAnimes: [] } };
 }
 
-// Get current working API base
+// Get current API base
 export function getCurrentApiBase() {
-  return currentApiBase;
+  return API_BASE;
 }

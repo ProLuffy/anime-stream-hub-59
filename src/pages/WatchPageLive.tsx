@@ -4,22 +4,28 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, List, Loader2, AlertCircle, Tv, Mic, Download } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import VideoPlayer from '@/components/player/VideoPlayer';
-import { useAnimeInfo, useEpisodes, useEpisodeServers, useEpisodeSources } from '@/hooks/useAnime';
+import { useAnimeInfo, useEpisodes, useEpisodeSources } from '@/hooks/useAnime';
 import { useAuth } from '@/contexts/AuthContext';
 import Disclaimer from '@/components/ui/Disclaimer';
 import { toast } from 'sonner';
+
+const SERVERS = [
+  { id: 'vidcloud', name: 'VidCloud' },
+  { id: 'vidstreaming', name: 'VidStreaming' },
+  { id: 'streamsb', name: 'StreamSB' },
+  { id: 'streamtape', name: 'StreamTape' },
+];
 
 export default function WatchPageLive() {
   const { id, episodeId } = useParams();
   const navigate = useNavigate();
   const { isPremium, updateWatchHistory } = useAuth();
   const [showEpisodes, setShowEpisodes] = useState(false);
-  const [selectedServer, setSelectedServer] = useState('hd-1');
+  const [selectedServer, setSelectedServer] = useState('vidcloud');
   const [selectedCategory, setSelectedCategory] = useState<'sub' | 'dub'>('sub');
 
   const { data: animeData } = useAnimeInfo(id || '');
   const { data: episodesData } = useEpisodes(id || '');
-  const { data: serversData, isLoading: serversLoading } = useEpisodeServers(episodeId || '');
   const { data: sourcesData, isLoading: sourcesLoading, error: sourcesError, refetch } = useEpisodeSources(
     episodeId || '',
     selectedServer,
@@ -28,9 +34,8 @@ export default function WatchPageLive() {
 
   const anime = animeData?.data?.anime;
   const episodes = episodesData?.data?.episodes || [];
-  const servers = serversData?.data || {};
   const sources = sourcesData?.data?.sources || [];
-  const subtitles = sourcesData?.data?.tracks || [];
+  const subtitles = sourcesData?.data?.tracks || sourcesData?.data?.subtitles || [];
   const intro = sourcesData?.data?.intro;
   const outro = sourcesData?.data?.outro;
 
@@ -39,19 +44,6 @@ export default function WatchPageLive() {
   const currentIndex = episodes.findIndex((ep: any) => ep.episodeId === episodeId);
   const prevEpisode = currentIndex > 0 ? episodes[currentIndex - 1] : null;
   const nextEpisode = currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
-
-  // Get available servers by category
-  const subServers = servers.sub || [];
-  const dubServers = servers.dub || [];
-
-  // Select first available server on load
-  useEffect(() => {
-    if (subServers.length > 0 && selectedCategory === 'sub') {
-      setSelectedServer(subServers[0]?.serverName || 'hd-1');
-    } else if (dubServers.length > 0 && selectedCategory === 'dub') {
-      setSelectedServer(dubServers[0]?.serverName || 'hd-1');
-    }
-  }, [subServers, dubServers, selectedCategory]);
 
   // Update watch history
   useEffect(() => {
@@ -68,9 +60,9 @@ export default function WatchPageLive() {
   }));
 
   const playerSubtitles = subtitles.map((s: any) => ({
-    url: s.file,
-    lang: s.label || 'English',
-    label: s.label,
+    url: s.file || s.url,
+    lang: s.label || s.lang || 'English',
+    label: s.label || s.lang,
   }));
 
   const handleDownload = () => {
@@ -81,9 +73,27 @@ export default function WatchPageLive() {
     }
     
     if (sources.length > 0) {
-      // Open download link
-      window.open(sources[0].url, '_blank');
-      toast.success('Download started!');
+      // Add to downloads
+      const downloadItem = {
+        id: Date.now().toString(),
+        animeId: id,
+        animeName: anime?.info?.name || 'Unknown',
+        episodeNumber: currentEpisode?.number || 1,
+        episodeTitle: currentEpisode?.title || 'Episode',
+        poster: anime?.info?.poster || '/placeholder.svg',
+        quality: '1080p',
+        size: '400 MB',
+        progress: 0,
+        status: 'downloading' as const,
+        downloadedAt: Date.now(),
+        speed: '2.1 MB/s',
+      };
+      
+      const existing = JSON.parse(localStorage.getItem('anicrew-downloads') || '[]');
+      localStorage.setItem('anicrew-downloads', JSON.stringify([downloadItem, ...existing]));
+      
+      toast.success('Download added! Check Downloads page.');
+      navigate('/downloads');
     }
   };
 
@@ -202,19 +212,17 @@ export default function WatchPageLive() {
                 </div>
 
                 {/* Server Selection */}
-                {!serversLoading && (
-                  <select
-                    value={selectedServer}
-                    onChange={(e) => setSelectedServer(e.target.value)}
-                    className="px-4 py-2.5 rounded-xl bg-secondary text-sm outline-none"
-                  >
-                    {(selectedCategory === 'sub' ? subServers : dubServers).map((server: any) => (
-                      <option key={server.serverName} value={server.serverName}>
-                        {server.serverName?.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  value={selectedServer}
+                  onChange={(e) => setSelectedServer(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl bg-secondary text-sm outline-none"
+                >
+                  {SERVERS.map((server) => (
+                    <option key={server.id} value={server.id}>
+                      {server.name}
+                    </option>
+                  ))}
+                </select>
 
                 {/* Download Button */}
                 <motion.button

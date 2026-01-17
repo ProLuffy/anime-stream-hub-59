@@ -20,6 +20,7 @@ import SchedulePage from "./pages/SchedulePage";
 import ProfilePage from "./pages/ProfilePage";
 import PremiumPage from "./pages/PremiumPage";
 import AdminPage from "./pages/AdminPage";
+import DownloadsPage from "./pages/DownloadsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ function AppContent() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/premium" element={<PremiumPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/downloads" element={<DownloadsPage />} />
         <Route path="/category/top-airing" element={<BrowsePageLive category="top-airing" title="Top Airing" />} />
         <Route path="/category/most-popular" element={<BrowsePageLive category="most-popular" title="Most Popular" />} />
         <Route path="/category/recently-updated" element={<BrowsePageLive category="recently-updated" title="Recently Updated" />} />
