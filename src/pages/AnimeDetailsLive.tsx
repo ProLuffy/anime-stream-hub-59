@@ -21,9 +21,27 @@ export default function AnimeDetailsLive() {
 
   const inWatchlist = id ? isInWatchlist(id) : false;
 
-  const anime = animeData?.data?.anime;
-  const moreInfo = anime?.moreInfo;
-  const episodes = episodesData?.data?.episodes || [];
+  // Handle both API structures: new API returns data directly, old API returns data.anime
+  const rawData = animeData?.data;
+  const anime = rawData?.anime || rawData; // Try old structure first, then new
+  const info = anime?.info || anime; // New API: data has title/poster directly
+  const moreInfo = anime?.moreInfo || {
+    aired: anime?.aired?.from,
+    genres: anime?.genres,
+    status: anime?.status,
+    studios: anime?.studios,
+    producers: anime?.producers,
+  };
+  
+  // Episodes: new API returns array directly, old API returns { episodes: [] }
+  const episodes = Array.isArray(episodesData?.data) 
+    ? episodesData.data.map((ep: any) => ({
+        episodeId: ep.id,
+        number: ep.episodeNumber,
+        title: ep.title,
+        isFiller: ep.isFiller,
+      }))
+    : episodesData?.data?.episodes || [];
 
   if (infoLoading) {
     return (
@@ -36,7 +54,11 @@ export default function AnimeDetailsLive() {
     );
   }
 
-  if (infoError || !anime) {
+  // Check if we have valid anime data
+  const animeName = info?.name || info?.title;
+  const animePoster = info?.poster;
+  
+  if (infoError || !animeName) {
     return (
       <div className="min-h-screen theme-transition">
         <Header />
@@ -53,8 +75,13 @@ export default function AnimeDetailsLive() {
   }
 
   const visibleEpisodes = showAllEpisodes ? episodes : episodes.slice(0, 24);
-  const info = anime.info;
-  const stats = info?.stats || {};
+  const stats = info?.stats || {
+    type: info?.type,
+    quality: info?.quality || 'HD',
+    episodes: info?.episodes,
+    rating: info?.rating,
+    duration: info?.duration,
+  };
 
   return (
     <div className="min-h-screen theme-transition">
@@ -66,8 +93,8 @@ export default function AnimeDetailsLive() {
           initial={{ scale: 1.1, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1 }}
-          src={info?.poster}
-          alt={info?.name}
+          src={animePoster}
+          alt={animeName}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
@@ -86,8 +113,8 @@ export default function AnimeDetailsLive() {
                 className="hidden md:block w-44 lg:w-52 flex-shrink-0"
               >
                 <img
-                  src={info?.poster}
-                  alt={info?.name}
+                  src={animePoster}
+                  alt={animeName}
                   className="w-full aspect-[2/3] object-cover rounded-xl shadow-2xl"
                 />
               </motion.div>
@@ -122,9 +149,11 @@ export default function AnimeDetailsLive() {
                   )}
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold mb-2 text-glow">{info?.name}</h1>
-                {info?.jname && (
-                  <p className="text-lg text-muted-foreground font-jp mb-4">{info.jname}</p>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2 text-glow">{animeName}</h1>
+                {(info?.jname || info?.japanese || info?.alternativeTitle) && (
+                  <p className="text-lg text-muted-foreground font-jp mb-4">
+                    {info?.jname || info?.japanese || info?.alternativeTitle}
+                  </p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -156,7 +185,7 @@ export default function AnimeDetailsLive() {
                 )}
 
                 <p className="text-muted-foreground text-sm line-clamp-3 mb-6 max-w-2xl">
-                  {info?.description}
+                  {info?.description || info?.synopsis}
                 </p>
 
                 {/* Actions */}

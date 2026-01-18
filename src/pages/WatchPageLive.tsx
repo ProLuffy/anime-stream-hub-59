@@ -32,8 +32,23 @@ export default function WatchPageLive() {
     selectedCategory
   );
 
-  const anime = animeData?.data?.anime;
-  const episodes = episodesData?.data?.episodes || [];
+  // Handle both API structures
+  const rawData = animeData?.data;
+  const anime = rawData?.anime || rawData;
+  const animeInfo = anime?.info || anime;
+  const animeName = animeInfo?.name || animeInfo?.title;
+  const animePoster = animeInfo?.poster;
+  
+  // Episodes: new API returns array directly
+  const episodes = Array.isArray(episodesData?.data) 
+    ? episodesData.data.map((ep: any) => ({
+        episodeId: ep.id,
+        number: ep.episodeNumber,
+        title: ep.title,
+        isFiller: ep.isFiller,
+      }))
+    : episodesData?.data?.episodes || [];
+    
   const sources = sourcesData?.data?.sources || [];
   const subtitles = sourcesData?.data?.tracks || sourcesData?.data?.subtitles || [];
   const intro = sourcesData?.data?.intro;
@@ -77,10 +92,10 @@ export default function WatchPageLive() {
       const downloadItem = {
         id: Date.now().toString(),
         animeId: id,
-        animeName: anime?.info?.name || 'Unknown',
+        animeName: animeName || 'Unknown',
         episodeNumber: currentEpisode?.number || 1,
         episodeTitle: currentEpisode?.title || 'Episode',
-        poster: anime?.info?.poster || '/placeholder.svg',
+        poster: animePoster || '/placeholder.svg',
         quality: '1080p',
         size: '400 MB',
         progress: 0,
@@ -109,7 +124,7 @@ export default function WatchPageLive() {
     }
   };
 
-  if (!anime) {
+  if (!animeName) {
     return (
       <div className="min-h-screen theme-transition">
         <Header />
@@ -155,8 +170,8 @@ export default function WatchPageLive() {
               <VideoPlayer
                 sources={playerSources}
                 subtitles={playerSubtitles}
-                poster={anime.info?.poster}
-                title={anime.info?.name}
+                poster={animePoster}
+                title={animeName}
                 episodeTitle={`Episode ${currentEpisode?.number}: ${currentEpisode?.title || ''}`}
                 onPrevious={goToPrevious}
                 onNext={goToNext}
@@ -176,7 +191,7 @@ export default function WatchPageLive() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
               <div>
                 <Link to={`/anime/${id}`} className="text-xl font-bold hover:text-primary transition-colors">
-                  {anime.info?.name}
+                  {animeName}
                 </Link>
                 <p className="text-muted-foreground">
                   Episode {currentEpisode?.number}: {currentEpisode?.title || 'Unknown'}
