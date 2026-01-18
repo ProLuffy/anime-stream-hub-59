@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, User, Settings, LogOut, Crown } from 'lucide-react';
+import { Search, Menu, X, User, Settings, LogOut, Crown, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useTheme, themes } from '@/contexts/ThemeContext';
+import { useTheme, themes, darkThemes, specialThemes } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchModalLive from '@/components/search/SearchModalLive';
 import NotificationBell from '@/components/notifications/NotificationBell';
@@ -16,7 +16,8 @@ export default function Header() {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const quickThemes = themes.slice(0, 6);
+  // Show 3 dark + 3 special themes in quick picker
+  const quickThemes = [...darkThemes.slice(0, 3), ...specialThemes.slice(0, 3)];
 
   return (
     <>
@@ -152,6 +153,16 @@ export default function Header() {
                           <User className="w-4 h-4" />
                           <span className="text-sm">Profile</span>
                         </Link>
+                        {isPremium && (
+                          <Link
+                            to="/downloads"
+                            onClick={() => setProfileOpen(false)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span className="text-sm">Downloads</span>
+                          </Link>
+                        )}
                         <Link
                           to="/settings"
                           onClick={() => setProfileOpen(false)}
