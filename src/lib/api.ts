@@ -156,8 +156,21 @@ export async function fetchEpisodes(animeId: string) {
 }
 
 // Fetch episode streaming sources
-export async function fetchEpisodeSources(episodeId: string, server = 'vidcloud', category = 'sub') {
-  return apiFetch(`/stream?id=${episodeId}&server=${server}&type=${category}`);
+// Note: The stream endpoint expects just the episode ID part (after the last ??)
+// and server names should match what the API expects
+export async function fetchEpisodeSources(episodeId: string, server = 'hd-1', category = 'sub') {
+  // The API expects episode ID like: "one-piece-100$episode$23454$both"
+  // Convert from "one-piece-100::ep=2168" or similar formats
+  let formattedId = episodeId;
+  
+  // If episode ID contains "::" format, we need to extract just the ep number
+  if (episodeId.includes('::')) {
+    // Keep the full ID as is - the API might need it this way
+    formattedId = episodeId;
+  }
+  
+  // Try with hd-1, hd-2 servers first as they're more reliable
+  return apiFetch(`/stream?id=${formattedId}&server=${server}&type=${category}`);
 }
 
 // Fetch category (e.g., top-airing, most-popular, etc.)

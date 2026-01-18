@@ -31,18 +31,30 @@ export default function Particles() {
 
   const getParticleColor = () => {
     switch (theme) {
-      case 'sakura-night':
+      case 'midnight-sakura':
+      case 'sakura-snow':
+      case 'peach-blossom':
         return 'bg-pink-300';
-      case 'dragon-ember':
+      case 'solar-flare':
+      case 'crimson-void':
         return 'bg-orange-400';
-      case 'celestial-void':
+      case 'void-purple':
+      case 'nebula-nights':
         return 'bg-purple-300';
-      case 'midnight-ocean':
+      case 'eclipse-blue':
+      case 'cloud-white':
         return 'bg-cyan-300';
-      case 'sunrise-bloom':
+      case 'sunrise-tokyo':
+      case 'morning-bloom':
         return 'bg-amber-300';
-      case 'snowfall-white':
+      case 'space-odyssey':
         return 'bg-blue-200';
+      case 'vaporwave-neon':
+        return 'bg-fuchsia-400';
+      case 'studio-ghibli':
+        return 'bg-green-300';
+      case 'lunar-eclipse':
+        return 'bg-slate-300';
       default:
         return 'bg-primary/30';
     }
@@ -50,16 +62,23 @@ export default function Particles() {
 
   const getParticleShape = () => {
     switch (theme) {
-      case 'sakura-night':
+      case 'midnight-sakura':
+      case 'sakura-snow':
+      case 'peach-blossom':
+      case 'studio-ghibli':
         return 'sakura';
-      case 'snowfall-white':
+      case 'space-odyssey':
+      case 'lunar-eclipse':
         return 'snowflake';
-      case 'dragon-ember':
+      case 'solar-flare':
+      case 'crimson-void':
         return 'ember';
       default:
         return 'circle';
     }
   };
+
+  const shouldAnimate = ['midnight-sakura', 'sakura-snow', 'peach-blossom', 'studio-ghibli'].includes(theme);
 
   return (
     <div className="particles-container">
@@ -75,7 +94,7 @@ export default function Particles() {
           animate={{ 
             y: '-10vh', 
             opacity: [0, 0.7, 0.7, 0],
-            rotate: theme === 'sakura-night' ? 720 : 0 
+            rotate: shouldAnimate ? 720 : 0 
           }}
           transition={{
             duration: particle.duration,

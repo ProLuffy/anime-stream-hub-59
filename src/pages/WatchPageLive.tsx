@@ -10,10 +10,10 @@ import Disclaimer from '@/components/ui/Disclaimer';
 import { toast } from 'sonner';
 
 const SERVERS = [
-  { id: 'vidcloud', name: 'VidCloud' },
-  { id: 'vidstreaming', name: 'VidStreaming' },
+  { id: 'hd-1', name: 'HD-1' },
+  { id: 'hd-2', name: 'HD-2' },
+  { id: 'megacloud', name: 'MegaCloud' },
   { id: 'streamsb', name: 'StreamSB' },
-  { id: 'streamtape', name: 'StreamTape' },
 ];
 
 export default function WatchPageLive() {
@@ -21,7 +21,7 @@ export default function WatchPageLive() {
   const navigate = useNavigate();
   const { isPremium, updateWatchHistory } = useAuth();
   const [showEpisodes, setShowEpisodes] = useState(false);
-  const [selectedServer, setSelectedServer] = useState('vidcloud');
+  const [selectedServer, setSelectedServer] = useState('hd-1');
   const [selectedCategory, setSelectedCategory] = useState<'sub' | 'dub'>('sub');
 
   const { data: animeData } = useAnimeInfo(id || '');
