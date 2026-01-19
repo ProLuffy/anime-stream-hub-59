@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type UserRole = 'guest' | 'user' | 'premium' | 'admin' | 'owner';
+export type UserStatus = 'active' | 'stopped';
+
+const OWNER_EMAIL = 'landlassan5@gmail.com';
 
 interface WatchHistoryItem {
   animeId: string;
@@ -15,6 +18,7 @@ interface User {
   email: string;
   avatar?: string;
   role: UserRole;
+  status: UserStatus;
   isPremium: boolean;
   watchlist: string[];
   watchHistory: WatchHistoryItem[];
@@ -31,6 +35,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isPremium: boolean;
   isAdmin: boolean;
+  isOwner: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   signup: (email: string, password: string, username: string) => Promise<void>;
@@ -41,6 +46,15 @@ interface AuthContextType {
   isInWatchlist: (animeId: string) => boolean;
   updateWatchHistory: (animeId: string, episodeId: string, progress: number) => void;
   getWatchProgress: (animeId: string, episodeId: string) => number;
+  // Admin functions
+  getAllUsers: () => User[];
+  addAdmin: (userId: string) => void;
+  removeAdmin: (userId: string) => void;
+  addPremium: (userId: string) => void;
+  removePremium: (userId: string) => void;
+  stopUser: (userId: string) => void;
+  activateUser: (userId: string) => void;
+  deleteUser: (userId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,31 +93,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const login = async (email: string, password: string) => {
-    // Simulated login - in production, validate against backend
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Check if user exists in localStorage (simple mock)
     const existingUsers = JSON.parse(localStorage.getItem('anicrew-users') || '[]');
     const existingUser = existingUsers.find((u: User) => u.email === email);
     
     if (existingUser) {
+      // Check if user is stopped
+      if (existingUser.status === 'stopped') {
+        throw new Error('Your account has been suspended. Contact support.');
+      }
       setUser(existingUser);
     } else {
-      // Create new user on first login
+      // Create new user - check if owner email
+      const isOwnerEmail = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
       const newUser: User = {
         id: crypto.randomUUID(),
         username: email.split('@')[0],
         email,
         avatar: generateAvatar(email),
-        role: 'user',
-        isPremium: false,
+        role: isOwnerEmail ? 'owner' : 'user',
+        status: 'active',
+        isPremium: isOwnerEmail,
         watchlist: [],
         watchHistory: [],
         createdAt: Date.now(),
       };
       setUser(newUser);
       
-      // Save to users list
       existingUsers.push(newUser);
       localStorage.setItem('anicrew-users', JSON.stringify(existingUsers));
     }
@@ -114,23 +131,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const existingUsers = JSON.parse(localStorage.getItem('anicrew-users') || '[]');
     
-    // Check if email already exists
     if (existingUsers.some((u: User) => u.email === email)) {
       throw new Error('Email already registered');
     }
     
-    // Check if username already exists
     if (existingUsers.some((u: User) => u.username === username)) {
       throw new Error('Username already taken');
     }
     
+    const isOwnerEmail = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
     const newUser: User = {
       id: crypto.randomUUID(),
       username,
       email,
       avatar: generateAvatar(username),
-      role: 'user',
-      isPremium: false,
+      role: isOwnerEmail ? 'owner' : 'user',
+      status: 'active',
+      isPremium: isOwnerEmail,
       watchlist: [],
       watchHistory: [],
       createdAt: Date.now(),
@@ -142,7 +159,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
-    // Simulated Google login
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const googleUser: User = {
@@ -151,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: 'user@gmail.com',
       avatar: generateAvatar('google-user'),
       role: 'user',
+      status: 'active',
       isPremium: false,
       watchlist: [],
       watchHistory: [],
@@ -169,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
       
-      // Update in users list too
       const existingUsers = JSON.parse(localStorage.getItem('anicrew-users') || '[]');
       const index = existingUsers.findIndex((u: User) => u.id === user.id);
       if (index >= 0) {
@@ -226,11 +242,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return item?.progress || 0;
   };
 
+  // Admin functions
+  const getAllUsers = (): User[] => {
+    try {
+      return JSON.parse(localStorage.getItem('anicrew-users') || '[]');
+    } catch {
+      return [];
+    }
+  };
+
+  const updateUserInStorage = (userId: string, updates: Partial<User>) => {
+    const users = getAllUsers();
+    const index = users.findIndex(u => u.id === userId);
+    if (index >= 0) {
+      users[index] = { ...users[index], ...updates };
+      localStorage.setItem('anicrew-users', JSON.stringify(users));
+      // Update current user if it's the same
+      if (user?.id === userId) {
+        setUser(users[index]);
+      }
+    }
+  };
+
+  const addAdmin = (userId: string) => {
+    if (user?.role !== 'owner') return;
+    updateUserInStorage(userId, { role: 'admin' });
+  };
+
+  const removeAdmin = (userId: string) => {
+    if (user?.role !== 'owner') return;
+    updateUserInStorage(userId, { role: 'user' });
+  };
+
+  const addPremium = (userId: string) => {
+    if (user?.role !== 'owner' && user?.role !== 'admin') return;
+    updateUserInStorage(userId, { isPremium: true, premiumSince: Date.now() });
+  };
+
+  const removePremium = (userId: string) => {
+    if (user?.role !== 'owner' && user?.role !== 'admin') return;
+    updateUserInStorage(userId, { isPremium: false, premiumSince: undefined });
+  };
+
+  const stopUser = (userId: string) => {
+    if (user?.role !== 'owner') return;
+    if (userId === user?.id) return; // Can't stop yourself
+    updateUserInStorage(userId, { status: 'stopped' });
+  };
+
+  const activateUser = (userId: string) => {
+    if (user?.role !== 'owner') return;
+    updateUserInStorage(userId, { status: 'active' });
+  };
+
+  const deleteUser = (userId: string) => {
+    if (user?.role !== 'owner' && user?.role !== 'admin') return;
+    if (userId === user?.id) return; // Can't delete yourself
+    
+    const users = getAllUsers().filter(u => u.id !== userId);
+    localStorage.setItem('anicrew-users', JSON.stringify(users));
+  };
+
+  // Calculate effective permissions (stopped users lose all special perms)
+  const effectiveRole = user?.status === 'stopped' ? 'user' : user?.role;
+  const effectivePremium = user?.status === 'stopped' ? false : (user?.isPremium || effectiveRole === 'premium' || effectiveRole === 'admin' || effectiveRole === 'owner');
+
   const value: AuthContextType = {
     user,
     isLoggedIn: !!user,
-    isPremium: user?.isPremium || user?.role === 'premium' || user?.role === 'admin' || user?.role === 'owner',
-    isAdmin: user?.role === 'admin' || user?.role === 'owner',
+    isPremium: effectivePremium,
+    isAdmin: effectiveRole === 'admin' || effectiveRole === 'owner',
+    isOwner: effectiveRole === 'owner',
     login,
     loginWithGoogle,
     signup,
@@ -241,10 +323,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isInWatchlist,
     updateWatchHistory,
     getWatchProgress,
+    getAllUsers,
+    addAdmin,
+    removeAdmin,
+    addPremium,
+    removePremium,
+    stopUser,
+    activateUser,
+    deleteUser,
   };
 
   if (isLoading) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (

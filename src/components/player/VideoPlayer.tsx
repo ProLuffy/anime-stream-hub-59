@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, 
-  Subtitles, Languages, ChevronLeft, ChevronRight, Loader2, 
-  AlertCircle, RotateCcw, SkipForward
+  Subtitles, ChevronLeft, ChevronRight, Loader2, 
+  AlertCircle, RotateCcw, SkipForward, Languages, Music
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCustomAudioSync } from '@/hooks/useCustomStream';
+import { CustomStreamData } from '@/lib/customBackend';
 
 interface StreamSource {
   url: string;
@@ -31,11 +33,8 @@ interface VideoPlayerProps {
   hasNext?: boolean;
   intro?: { start: number; end: number };
   outro?: { start: number; end: number };
-}
-
-interface QualityOption {
-  label: string;
-  value: string;
+  // Custom stream overlay
+  customStream?: CustomStreamData | null;
 }
 
 interface SubtitleSettings {
@@ -45,7 +44,7 @@ interface SubtitleSettings {
   color: string;
 }
 
-const qualityOptions: QualityOption[] = [
+const qualityOptions = [
   { label: 'Auto', value: 'auto' },
   { label: '1080p', value: '1080' },
   { label: '720p', value: '720' },
@@ -71,6 +70,7 @@ export default function VideoPlayer({
   hasNext = false,
   intro,
   outro,
+  customStream,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,9 +85,11 @@ export default function VideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showSubtitleSettings, setShowSubtitleSettings] = useState(false);
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [selectedQuality, setSelectedQuality] = useState('auto');
   const [showSkipIntro, setShowSkipIntro] = useState(false);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<'original' | 'hindi'>('original');
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>({
     enabled: true,
     language: subtitles[0]?.lang || 'en',
@@ -97,10 +99,28 @@ export default function VideoPlayer({
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Get current source
+  // Custom audio sync hook
+  const { audioState, setActive: setCustomAudioActive } = useCustomAudioSync(
+    videoRef,
+    customStream?.audioUrl || null,
+    selectedAudioTrack === 'hindi'
+  );
+
+  // Merge custom subtitles with original subtitles
+  const allSubtitles = React.useMemo(() => {
+    const subs = [...subtitles];
+    if (customStream?.hasCustomSubtitle && customStream.subtitleUrl) {
+      subs.push({
+        url: customStream.subtitleUrl,
+        lang: customStream.subtitleLang || 'Hindi',
+        label: customStream.subtitleLang || 'Hindi',
+      });
+    }
+    return subs;
+  }, [subtitles, customStream]);
+
   const currentSource = sources[currentSourceIndex];
 
-  // Handle source switching
   const switchSource = useCallback((index: number) => {
     if (index >= 0 && index < sources.length) {
       const savedTime = videoRef.current?.currentTime || 0;
@@ -108,7 +128,6 @@ export default function VideoPlayer({
       setIsLoading(true);
       setHasError(false);
       
-      // Preserve timestamp
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.currentTime = savedTime;
@@ -120,17 +139,15 @@ export default function VideoPlayer({
     }
   }, [sources]);
 
-  // Fallback logic
   const tryNextSource = useCallback(() => {
     if (currentSourceIndex < sources.length - 1) {
-      toast.info('Switched to alternate stream for better playback');
+      toast.info('Trying alternate stream...');
       switchSource(currentSourceIndex + 1);
     } else {
       setHasError(true);
     }
   }, [currentSourceIndex, sources.length, switchSource]);
 
-  // Video event handlers
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
@@ -142,7 +159,6 @@ export default function VideoPlayer({
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
       
-      // Check for skip intro
       if (intro && currentTime >= intro.start && currentTime < intro.end) {
         setShowSkipIntro(true);
       } else {
@@ -159,7 +175,6 @@ export default function VideoPlayer({
   const handleWaiting = () => setIsLoading(true);
   const handleCanPlay = () => setIsLoading(false);
 
-  // Control functions
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -173,6 +188,11 @@ export default function VideoPlayer({
 
   const toggleMute = () => {
     if (videoRef.current) {
+      // Don't unmute if custom audio is active
+      if (selectedAudioTrack === 'hindi') {
+        toast.info('Video is muted while Hindi audio is playing');
+        return;
+      }
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
@@ -223,7 +243,24 @@ export default function VideoPlayer({
     setShowSettings(false);
   };
 
-  // Auto-hide controls
+  const handleAudioTrackChange = (track: 'original' | 'hindi') => {
+    setSelectedAudioTrack(track);
+    if (track === 'hindi') {
+      setCustomAudioActive(true);
+      if (videoRef.current) {
+        videoRef.current.muted = true;
+      }
+      toast.success('Switched to Hindi audio');
+    } else {
+      setCustomAudioActive(false);
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+      }
+      toast.success('Switched to original audio');
+    }
+    setShowAudioSettings(false);
+  };
+
   const handleMouseMove = () => {
     setShowControls(true);
     clearTimeout(controlsTimeoutRef.current);
@@ -232,7 +269,6 @@ export default function VideoPlayer({
     }, 3000);
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!videoRef.current) return;
@@ -268,7 +304,6 @@ export default function VideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying]);
 
-  // Format time
   const formatTime = (time: number) => {
     const mins = Math.floor(time / 60);
     const secs = Math.floor(time % 60);
@@ -311,8 +346,7 @@ export default function VideoPlayer({
         onPause={() => setIsPlaying(false)}
         crossOrigin="anonymous"
       >
-        {/* Subtitles */}
-        {subtitleSettings.enabled && subtitles.map((sub, idx) => (
+        {subtitleSettings.enabled && allSubtitles.map((sub, idx) => (
           <track
             key={idx}
             kind="subtitles"
@@ -324,7 +358,7 @@ export default function VideoPlayer({
         ))}
       </video>
 
-      {/* Subtitle overlay styling */}
+      {/* Subtitle styling */}
       <style>{`
         video::cue {
           font-size: ${subtitleSizes[subtitleSettings.size]};
@@ -337,14 +371,19 @@ export default function VideoPlayer({
 
       {/* Loading overlay */}
       <AnimatePresence>
-        {isLoading && (
+        {(isLoading || audioState.isLoading) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center bg-black/50"
           >
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+              {audioState.isLoading && (
+                <p className="text-sm text-muted-foreground mt-2">Syncing Hindi audio...</p>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -387,6 +426,14 @@ export default function VideoPlayer({
         )}
       </AnimatePresence>
 
+      {/* Hindi audio indicator */}
+      {selectedAudioTrack === 'hindi' && (
+        <div className="absolute top-4 right-4 px-3 py-1.5 bg-green-500/80 rounded-lg text-sm font-medium flex items-center gap-2">
+          <Music className="w-4 h-4" />
+          Hindi Audio
+        </div>
+      )}
+
       {/* Controls overlay */}
       <AnimatePresence>
         {showControls && !hasError && (
@@ -403,7 +450,6 @@ export default function VideoPlayer({
                 {episodeTitle && <p className="text-sm text-muted-foreground">{episodeTitle}</p>}
               </div>
               <div className="flex items-center gap-2">
-                {/* Quality badge */}
                 <span className="px-2 py-1 text-xs font-medium bg-primary/20 rounded">
                   {selectedQuality.toUpperCase()}
                 </span>
@@ -446,7 +492,6 @@ export default function VideoPlayer({
               {/* Control buttons */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* Prev/Next episode */}
                   {hasPrevious && (
                     <button onClick={onPrevious} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                       <ChevronLeft className="w-5 h-5" />
@@ -466,7 +511,11 @@ export default function VideoPlayer({
                   {/* Volume */}
                   <div className="flex items-center gap-2">
                     <button onClick={toggleMute} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                      {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      {isMuted || volume === 0 || selectedAudioTrack === 'hindi' ? (
+                        <VolumeX className="w-5 h-5" />
+                      ) : (
+                        <Volume2 className="w-5 h-5" />
+                      )}
                     </button>
                     <input
                       type="range"
@@ -484,11 +533,66 @@ export default function VideoPlayer({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Subtitles */}
-                  {subtitles.length > 0 && (
+                  {/* Audio Track Selection (if custom audio available) */}
+                  {customStream?.hasCustomAudio && (
                     <div className="relative">
                       <button
-                        onClick={() => setShowSubtitleSettings(!showSubtitleSettings)}
+                        onClick={() => {
+                          setShowAudioSettings(!showAudioSettings);
+                          setShowSettings(false);
+                          setShowSubtitleSettings(false);
+                        }}
+                        className={`p-2 rounded-lg transition-colors ${
+                          selectedAudioTrack === 'hindi' ? 'bg-green-500 text-white' : 'hover:bg-white/20'
+                        }`}
+                      >
+                        <Languages className="w-5 h-5" />
+                      </button>
+
+                      <AnimatePresence>
+                        {showAudioSettings && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute bottom-full right-0 mb-2 p-3 bg-black/90 backdrop-blur-md rounded-xl min-w-[160px]"
+                          >
+                            <p className="text-xs text-muted-foreground mb-2 font-semibold">Audio Track</p>
+                            <div className="space-y-1">
+                              <button
+                                onClick={() => handleAudioTrackChange('original')}
+                                className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between ${
+                                  selectedAudioTrack === 'original' ? 'bg-primary text-primary-foreground' : 'hover:bg-white/10'
+                                }`}
+                              >
+                                Original
+                                {selectedAudioTrack === 'original' && <span>✓</span>}
+                              </button>
+                              <button
+                                onClick={() => handleAudioTrackChange('hindi')}
+                                className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between ${
+                                  selectedAudioTrack === 'hindi' ? 'bg-green-500 text-white' : 'hover:bg-white/10'
+                                }`}
+                              >
+                                🇮🇳 Hindi
+                                {selectedAudioTrack === 'hindi' && <span>✓</span>}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Subtitles */}
+                  {allSubtitles.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowSubtitleSettings(!showSubtitleSettings);
+                          setShowSettings(false);
+                          setShowAudioSettings(false);
+                        }}
                         className={`p-2 rounded-lg transition-colors ${
                           subtitleSettings.enabled ? 'bg-primary text-primary-foreground' : 'hover:bg-white/20'
                         }`}
@@ -502,82 +606,85 @@ export default function VideoPlayer({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            className="absolute bottom-full right-0 mb-2 p-4 bg-black/90 rounded-xl 
-                                       backdrop-blur-md border border-white/10 min-w-[200px]"
+                            className="absolute bottom-full right-0 mb-2 p-4 bg-black/90 backdrop-blur-md rounded-xl min-w-[200px]"
                           >
-                            <h4 className="font-semibold mb-3">Subtitles</h4>
-                            
-                            {/* Toggle */}
-                            <label className="flex items-center justify-between mb-3">
-                              <span className="text-sm">Enable</span>
-                              <input
-                                type="checkbox"
-                                checked={subtitleSettings.enabled}
-                                onChange={(e) => setSubtitleSettings(s => ({ ...s, enabled: e.target.checked }))}
-                                className="w-4 h-4 accent-primary"
-                              />
-                            </label>
-
-                            {/* Language */}
-                            <div className="mb-3">
-                              <label className="text-sm text-muted-foreground">Language</label>
-                              <select
-                                value={subtitleSettings.language}
-                                onChange={(e) => setSubtitleSettings(s => ({ ...s, language: e.target.value }))}
-                                className="w-full mt-1 p-2 bg-white/10 rounded-lg text-sm"
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium">Subtitles</span>
+                              <button
+                                onClick={() => setSubtitleSettings(s => ({ ...s, enabled: !s.enabled }))}
+                                className={`w-10 h-5 rounded-full transition-colors ${
+                                  subtitleSettings.enabled ? 'bg-primary' : 'bg-muted'
+                                }`}
                               >
-                                {subtitles.map((sub) => (
-                                  <option key={sub.lang} value={sub.lang}>
-                                    {sub.label || sub.lang.toUpperCase()}
-                                  </option>
-                                ))}
-                              </select>
+                                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                                  subtitleSettings.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                }`} />
+                              </button>
                             </div>
 
-                            {/* Size */}
-                            <div className="mb-3">
-                              <label className="text-sm text-muted-foreground">Size</label>
-                              <div className="flex gap-2 mt-1">
-                                {(['small', 'medium', 'large'] as const).map((size) => (
-                                  <button
-                                    key={size}
-                                    onClick={() => setSubtitleSettings(s => ({ ...s, size }))}
-                                    className={`px-3 py-1 text-xs rounded ${
-                                      subtitleSettings.size === size ? 'bg-primary text-primary-foreground' : 'bg-white/10'
-                                    }`}
+                            {subtitleSettings.enabled && (
+                              <>
+                                <div className="mb-3">
+                                  <p className="text-xs text-muted-foreground mb-1">Language</p>
+                                  <select
+                                    value={subtitleSettings.language}
+                                    onChange={(e) => setSubtitleSettings(s => ({ ...s, language: e.target.value }))}
+                                    className="w-full px-2 py-1 bg-secondary rounded text-sm"
                                   >
-                                    {size.charAt(0).toUpperCase() + size.slice(1)}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                                    {allSubtitles.map((sub, idx) => (
+                                      <option key={idx} value={sub.lang}>{sub.label || sub.lang}</option>
+                                    ))}
+                                  </select>
+                                </div>
 
-                            {/* Color */}
-                            <div>
-                              <label className="text-sm text-muted-foreground">Color</label>
-                              <div className="flex gap-2 mt-1">
-                                {subtitleColors.map((color) => (
-                                  <button
-                                    key={color}
-                                    onClick={() => setSubtitleSettings(s => ({ ...s, color }))}
-                                    className={`w-6 h-6 rounded-full border-2 ${
-                                      subtitleSettings.color === color ? 'border-primary' : 'border-transparent'
-                                    }`}
-                                    style={{ background: color }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
+                                <div className="mb-3">
+                                  <p className="text-xs text-muted-foreground mb-1">Size</p>
+                                  <div className="flex gap-1">
+                                    {(['small', 'medium', 'large'] as const).map(size => (
+                                      <button
+                                        key={size}
+                                        onClick={() => setSubtitleSettings(s => ({ ...s, size }))}
+                                        className={`flex-1 px-2 py-1 rounded text-xs capitalize ${
+                                          subtitleSettings.size === size ? 'bg-primary text-primary-foreground' : 'bg-secondary'
+                                        }`}
+                                      >
+                                        {size}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Color</p>
+                                  <div className="flex gap-1">
+                                    {subtitleColors.map(color => (
+                                      <button
+                                        key={color}
+                                        onClick={() => setSubtitleSettings(s => ({ ...s, color }))}
+                                        className={`w-6 h-6 rounded-full border-2 ${
+                                          subtitleSettings.color === color ? 'border-primary' : 'border-transparent'
+                                        }`}
+                                        style={{ backgroundColor: color }}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              </>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
                   )}
 
-                  {/* Settings (Quality) */}
+                  {/* Quality Settings */}
                   <div className="relative">
                     <button
-                      onClick={() => setShowSettings(!showSettings)}
+                      onClick={() => {
+                        setShowSettings(!showSettings);
+                        setShowSubtitleSettings(false);
+                        setShowAudioSettings(false);
+                      }}
                       className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                     >
                       <Settings className="w-5 h-5" />
@@ -589,21 +696,20 @@ export default function VideoPlayer({
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          className="absolute bottom-full right-0 mb-2 p-4 bg-black/90 rounded-xl 
-                                     backdrop-blur-md border border-white/10 min-w-[150px]"
+                          className="absolute bottom-full right-0 mb-2 p-3 bg-black/90 backdrop-blur-md rounded-xl"
                         >
-                          <h4 className="font-semibold mb-3">Quality</h4>
-                          {qualityOptions.map((option) => (
+                          <p className="text-xs text-muted-foreground mb-2">Quality</p>
+                          {qualityOptions.map(opt => (
                             <button
-                              key={option.value}
-                              onClick={() => handleQualityChange(option.value)}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                selectedQuality === option.value 
-                                  ? 'bg-primary text-primary-foreground' 
+                              key={opt.value}
+                              onClick={() => handleQualityChange(opt.value)}
+                              className={`block w-full px-4 py-2 text-left text-sm rounded-lg transition-colors ${
+                                selectedQuality === opt.value
+                                  ? 'bg-primary text-primary-foreground'
                                   : 'hover:bg-white/10'
                               }`}
                             >
-                              {option.label}
+                              {opt.label}
                             </button>
                           ))}
                         </motion.div>
@@ -623,9 +729,7 @@ export default function VideoPlayer({
       </AnimatePresence>
 
       {/* Vignette effect */}
-      <div className="absolute inset-0 pointer-events-none rounded-2xl" style={{
-        boxShadow: 'inset 0 0 100px rgba(0,0,0,0.4)',
-      }} />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
     </div>
   );
 }

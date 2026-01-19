@@ -8,6 +8,8 @@ import { useAnimeInfo, useEpisodes, useEpisodeSources } from '@/hooks/useAnime';
 import { useAuth } from '@/contexts/AuthContext';
 import Disclaimer from '@/components/ui/Disclaimer';
 import { toast } from 'sonner';
+import { useCustomStream } from '@/hooks/useCustomStream';
+import { requestMuxedDownload } from '@/lib/customBackend';
 
 const SERVERS = [
   { id: 'hd-1', name: 'HD-1' },
@@ -23,6 +25,7 @@ export default function WatchPageLive() {
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [selectedServer, setSelectedServer] = useState('hd-1');
   const [selectedCategory, setSelectedCategory] = useState<'sub' | 'dub'>('sub');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: animeData } = useAnimeInfo(id || '');
   const { data: episodesData } = useEpisodes(id || '');
@@ -31,6 +34,9 @@ export default function WatchPageLive() {
     selectedServer,
     selectedCategory
   );
+  
+  // Fetch custom Hindi audio/subtitles from your backend
+  const { customData: customStream } = useCustomStream({ episodeId: episodeId || '', lang: 'hindi' });
 
   // Handle both API structures
   const rawData = animeData?.data;
@@ -80,7 +86,7 @@ export default function WatchPageLive() {
     label: s.label || s.lang,
   }));
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!isPremium) {
       toast.error('Download is a Premium feature. Upgrade to download!');
       navigate('/premium');
@@ -88,27 +94,47 @@ export default function WatchPageLive() {
     }
     
     if (sources.length > 0) {
-      // Add to downloads
-      const downloadItem = {
-        id: Date.now().toString(),
-        animeId: id,
-        animeName: animeName || 'Unknown',
-        episodeNumber: currentEpisode?.number || 1,
-        episodeTitle: currentEpisode?.title || 'Episode',
-        poster: animePoster || '/placeholder.svg',
-        quality: '1080p',
-        size: '400 MB',
-        progress: 0,
-        status: 'downloading' as const,
-        downloadedAt: Date.now(),
-        speed: '2.1 MB/s',
-      };
+      setIsDownloading(true);
+      toast.info('Preparing file... This may take a moment.');
       
-      const existing = JSON.parse(localStorage.getItem('anicrew-downloads') || '[]');
-      localStorage.setItem('anicrew-downloads', JSON.stringify([downloadItem, ...existing]));
-      
-      toast.success('Download added! Check Downloads page.');
-      navigate('/downloads');
+      try {
+        // Smart download: mux video + custom audio/subs through backend
+        const response = await requestMuxedDownload(
+          sources[0]?.url,
+          customStream?.audioUrl,
+          customStream?.subtitleUrl
+        );
+        
+        if (response.success && response.downloadUrl) {
+          window.open(response.downloadUrl, '_blank');
+          toast.success('Download ready!');
+        } else {
+          // Fallback to local download tracking
+          const downloadItem = {
+            id: Date.now().toString(),
+            animeId: id,
+            animeName: animeName || 'Unknown',
+            episodeNumber: currentEpisode?.number || 1,
+            episodeTitle: currentEpisode?.title || 'Episode',
+            poster: animePoster || '/placeholder.svg',
+            quality: '1080p',
+            size: '400 MB',
+            progress: 0,
+            status: 'downloading' as const,
+            downloadedAt: Date.now(),
+            speed: '2.1 MB/s',
+          };
+          
+          const existing = JSON.parse(localStorage.getItem('anicrew-downloads') || '[]');
+          localStorage.setItem('anicrew-downloads', JSON.stringify([downloadItem, ...existing]));
+          toast.success('Download added! Check Downloads page.');
+          navigate('/downloads');
+        }
+      } catch (error) {
+        toast.error('Download failed. Please try again.');
+      } finally {
+        setIsDownloading(false);
+      }
     }
   };
 
@@ -179,6 +205,7 @@ export default function WatchPageLive() {
                 hasNext={!!nextEpisode}
                 intro={intro}
                 outro={outro}
+                customStream={customStream}
               />
             )}
           </div>
@@ -249,9 +276,10 @@ export default function WatchPageLive() {
                       ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
                       : 'bg-secondary hover:bg-secondary/80'
                   }`}
+                  disabled={isDownloading}
                 >
-                  <Download className="w-4 h-4" />
-                  {isPremium ? 'Download' : 'Premium'}
+                  {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {isDownloading ? 'Preparing...' : isPremium ? 'Download' : 'Premium'}
                 </motion.button>
 
                 {/* Episode List Toggle */}
