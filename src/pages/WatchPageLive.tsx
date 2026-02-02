@@ -1,21 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, List, Loader2, AlertCircle, Tv, Mic, Download } from 'lucide-react';
+import { 
+  ChevronLeft, ChevronRight, List, Loader2, AlertCircle, 
+  Tv, Mic, Download, Subtitles, Languages, Crown, RefreshCw
+} from 'lucide-react';
 import Header from '@/components/layout/Header';
 import VideoPlayer from '@/components/player/VideoPlayer';
-import { useAnimeInfo, useEpisodes, useEpisodeSources } from '@/hooks/useAnime';
+import { useAnimeInfo, useEpisodes } from '@/hooks/useAnime';
 import { useAuth } from '@/contexts/AuthContext';
 import Disclaimer from '@/components/ui/Disclaimer';
 import { toast } from 'sonner';
 import { useCustomStream } from '@/hooks/useCustomStream';
 import { requestMuxedDownload } from '@/lib/customBackend';
+import { resolveStreamFast, SERVER_PRIORITY } from '@/lib/streamResolver';
 
-const SERVERS = [
-  { id: 'hd-1', name: 'HD-1' },
-  { id: 'hd-2', name: 'HD-2' },
-  { id: 'megacloud', name: 'MegaCloud' },
-  { id: 'streamsb', name: 'StreamSB' },
+// Available languages for dub
+const DUB_LANGUAGES = [
+  { code: 'sub', name: 'Japanese (Sub)', flag: '🇯🇵' },
+  { code: 'dub', name: 'English (Dub)', flag: '🇺🇸' },
+  { code: 'raw', name: 'Raw (No Subs)', flag: '🌐' },
+];
+
+// Available subtitle languages
+const SUBTITLE_LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳', premium: true },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
 ];
 
 export default function WatchPageLive() {
@@ -24,16 +37,26 @@ export default function WatchPageLive() {
   const { isPremium, updateWatchHistory } = useAuth();
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [selectedServer, setSelectedServer] = useState('hd-1');
-  const [selectedCategory, setSelectedCategory] = useState<'sub' | 'dub'>('sub');
+  const [selectedCategory, setSelectedCategory] = useState<'sub' | 'dub' | 'raw'>('sub');
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  // Stream state
+  const [streamData, setStreamData] = useState<{
+    sources: any[];
+    subtitles: any[];
+    intro?: any;
+    outro?: any;
+  } | null>(null);
+  const [isLoadingStream, setIsLoadingStream] = useState(true);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  // Language dropdown states
+  const [showDubDropdown, setShowDubDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(false);
 
   const { data: animeData } = useAnimeInfo(id || '');
   const { data: episodesData } = useEpisodes(id || '');
-  const { data: sourcesData, isLoading: sourcesLoading, error: sourcesError, refetch } = useEpisodeSources(
-    episodeId || '',
-    selectedServer,
-    selectedCategory
-  );
   
   // Fetch custom Hindi audio/subtitles from your backend
   const { customData: customStream } = useCustomStream({ episodeId: episodeId || '', lang: 'hindi' });
@@ -54,17 +77,50 @@ export default function WatchPageLive() {
         isFiller: ep.isFiller,
       }))
     : episodesData?.data?.episodes || [];
-    
-  const sources = sourcesData?.data?.sources || [];
-  const subtitles = sourcesData?.data?.tracks || sourcesData?.data?.subtitles || [];
-  const intro = sourcesData?.data?.intro;
-  const outro = sourcesData?.data?.outro;
 
   // Find current episode info
   const currentEpisode = episodes.find((ep: any) => ep.episodeId === episodeId);
   const currentIndex = episodes.findIndex((ep: any) => ep.episodeId === episodeId);
   const prevEpisode = currentIndex > 0 ? episodes[currentIndex - 1] : null;
   const nextEpisode = currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
+
+  // Load stream with auto-retry
+  const loadStream = useCallback(async () => {
+    if (!episodeId) return;
+    
+    setIsLoadingStream(true);
+    setStreamError(null);
+    
+    try {
+      const result = await resolveStreamFast(episodeId, selectedCategory);
+      
+      if (result.success) {
+        setStreamData({
+          sources: result.sources,
+          subtitles: result.subtitles,
+          intro: result.intro,
+          outro: result.outro,
+        });
+        setSelectedServer(result.server);
+        
+        if (result.server !== 'hd-1') {
+          toast.success(`Connected via ${result.server.toUpperCase()}`);
+        }
+      } else {
+        setStreamError(result.error || 'Stream not available');
+      }
+    } catch (error: any) {
+      setStreamError(error.message || 'Failed to load stream');
+    } finally {
+      setIsLoadingStream(false);
+      setIsRetrying(false);
+    }
+  }, [episodeId, selectedCategory]);
+
+  // Load stream on mount and when category changes
+  useEffect(() => {
+    loadStream();
+  }, [loadStream]);
 
   // Update watch history
   useEffect(() => {
@@ -74,17 +130,38 @@ export default function WatchPageLive() {
   }, [id, episodeId]);
 
   // Format sources for VideoPlayer
-  const playerSources = sources.map((s: any) => ({
+  const playerSources = streamData?.sources?.map((s: any) => ({
     url: s.url,
     quality: s.quality || 'auto',
     type: s.type || 'hls',
-  }));
+  })) || [];
 
-  const playerSubtitles = subtitles.map((s: any) => ({
+  const playerSubtitles = streamData?.subtitles?.map((s: any) => ({
     url: s.file || s.url,
     lang: s.label || s.lang || 'English',
     label: s.label || s.lang,
-  }));
+  })) || [];
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    loadStream();
+  };
+
+  const handleCategoryChange = (category: 'sub' | 'dub' | 'raw') => {
+    setSelectedCategory(category);
+    setShowDubDropdown(false);
+    toast.info(`Switching to ${DUB_LANGUAGES.find(l => l.code === category)?.name}...`);
+  };
+
+  const handleSubtitleRequest = () => {
+    if (!isPremium) {
+      toast.error('Subtitle requests are a Premium feature');
+      navigate('/premium');
+      return;
+    }
+    
+    navigate(`/request-subtitle?animeId=${id}&animeName=${encodeURIComponent(animeName || '')}&episodeId=${episodeId}&episodeNumber=${currentEpisode?.number || 1}`);
+  };
 
   const handleDownload = async () => {
     if (!isPremium) {
@@ -93,14 +170,13 @@ export default function WatchPageLive() {
       return;
     }
     
-    if (sources.length > 0) {
+    if (streamData?.sources && streamData.sources.length > 0) {
       setIsDownloading(true);
       toast.info('Preparing file... This may take a moment.');
       
       try {
-        // Smart download: mux video + custom audio/subs through backend
         const response = await requestMuxedDownload(
-          sources[0]?.url,
+          streamData.sources[0]?.url,
           customStream?.audioUrl,
           customStream?.subtitleUrl
         );
@@ -109,7 +185,6 @@ export default function WatchPageLive() {
           window.open(response.downloadUrl, '_blank');
           toast.success('Download ready!');
         } else {
-          // Fallback to local download tracking
           const downloadItem = {
             id: Date.now().toString(),
             animeId: id,
@@ -169,26 +244,30 @@ export default function WatchPageLive() {
         {/* Video Player Area */}
         <section className="relative">
           <div className="container mx-auto px-4">
-            {sourcesLoading ? (
+            {isLoadingStream ? (
               <div className="aspect-video rounded-2xl bg-card flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground">Loading stream...</p>
+                  <p className="text-muted-foreground">
+                    {isRetrying ? 'Trying different servers...' : 'Loading stream...'}
+                  </p>
                 </div>
               </div>
-            ) : sourcesError || sources.length === 0 ? (
+            ) : streamError || playerSources.length === 0 ? (
               <div className="aspect-video rounded-2xl bg-card flex items-center justify-center">
                 <div className="text-center max-w-md px-4">
                   <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-4" />
                   <p className="font-semibold mb-2">Stream Not Available</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Try another server or language option.
+                    {streamError || 'Try another server or language option.'}
                   </p>
                   <button
-                    onClick={() => refetch()}
-                    className="btn-ghost"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                    className="btn-primary flex items-center gap-2 mx-auto"
                   >
-                    Retry
+                    <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                    {isRetrying ? 'Retrying...' : 'Try Again'}
                   </button>
                 </div>
               </div>
@@ -203,8 +282,8 @@ export default function WatchPageLive() {
                 onNext={goToNext}
                 hasPrevious={!!prevEpisode}
                 hasNext={!!nextEpisode}
-                intro={intro}
-                outro={outro}
+                intro={streamData?.intro}
+                outro={streamData?.outro}
                 customStream={customStream}
               />
             )}
@@ -227,41 +306,114 @@ export default function WatchPageLive() {
 
               {/* Server & Category Selection */}
               <div className="flex items-center gap-3 flex-wrap">
-                {/* Category Toggle */}
-                <div className="flex bg-secondary/50 rounded-xl p-1">
+                {/* DUB/Language Selection */}
+                <div className="relative">
                   <button
-                    onClick={() => setSelectedCategory('sub')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                      selectedCategory === 'sub'
-                        ? 'bg-blue-500 text-white'
-                        : 'hover:bg-secondary'
-                    }`}
-                  >
-                    <Tv className="w-4 h-4" />
-                    SUB
-                  </button>
-                  <button
-                    onClick={() => setSelectedCategory('dub')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                      selectedCategory === 'dub'
-                        ? 'bg-green-500 text-white'
-                        : 'hover:bg-secondary'
+                    onClick={() => {
+                      setShowDubDropdown(!showDubDropdown);
+                      setShowSubDropdown(false);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors ${
+                      selectedCategory === 'dub' ? 'bg-green-500 text-white' : 'bg-secondary hover:bg-secondary/80'
                     }`}
                   >
                     <Mic className="w-4 h-4" />
-                    DUB
+                    {selectedCategory === 'sub' ? 'SUB' : selectedCategory === 'dub' ? 'DUB' : 'RAW'}
                   </button>
+                  
+                  {showDubDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 mt-2 p-2 bg-card rounded-xl border border-border shadow-xl z-50 min-w-[180px]"
+                    >
+                      {DUB_LANGUAGES.map(lang => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleCategoryChange(lang.code as any)}
+                          className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-3 transition-colors ${
+                            selectedCategory === lang.code ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
+                          }`}
+                        >
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Subtitle Selection */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setShowSubDropdown(!showSubDropdown);
+                      setShowDubDropdown(false);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <Subtitles className="w-4 h-4" />
+                    Subtitles
+                  </button>
+                  
+                  {showSubDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 mt-2 p-2 bg-card rounded-xl border border-border shadow-xl z-50 min-w-[220px]"
+                    >
+                      <p className="px-3 py-1.5 text-xs text-muted-foreground font-medium">Available Subtitles</p>
+                      
+                      {SUBTITLE_LANGUAGES.map(lang => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            if (lang.premium && !isPremium) {
+                              toast.error('This is a Premium feature');
+                              navigate('/premium');
+                            } else {
+                              toast.success(`${lang.name} subtitles selected`);
+                            }
+                            setShowSubDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between hover:bg-secondary transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span>{lang.flag}</span>
+                            <span>{lang.name}</span>
+                          </div>
+                          {lang.premium && (
+                            <Crown className="w-4 h-4 text-yellow-500" />
+                          )}
+                        </button>
+                      ))}
+                      
+                      <div className="border-t border-border mt-2 pt-2">
+                        <button
+                          onClick={handleSubtitleRequest}
+                          className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 transition-colors"
+                        >
+                          <Languages className="w-4 h-4 text-purple-400" />
+                          <span>Request Subtitle</span>
+                          <Crown className="w-4 h-4 text-yellow-500 ml-auto" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Server Selection */}
                 <select
                   value={selectedServer}
-                  onChange={(e) => setSelectedServer(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedServer(e.target.value);
+                    loadStream();
+                  }}
                   className="px-4 py-2.5 rounded-xl bg-secondary text-sm outline-none"
                 >
-                  {SERVERS.map((server) => (
-                    <option key={server.id} value={server.id}>
-                      {server.name}
+                  {SERVER_PRIORITY.slice(0, 4).map((server) => (
+                    <option key={server} value={server}>
+                      {server.toUpperCase()}
                     </option>
                   ))}
                 </select>
@@ -367,6 +519,17 @@ export default function WatchPageLive() {
           </div>
         </section>
       </main>
+      
+      {/* Close dropdowns on outside click */}
+      {(showDubDropdown || showSubDropdown) && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => {
+            setShowDubDropdown(false);
+            setShowSubDropdown(false);
+          }}
+        />
+      )}
     </div>
   );
 }
