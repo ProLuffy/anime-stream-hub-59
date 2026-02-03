@@ -1,7 +1,7 @@
-// HiAnime API Service - Using your custom API
-// API Base: /api/v1
+// HiAnime API Service
+// API Base: https://hianimeapi-1vww.onrender.com/api/v1
 
-const API_BASE = 'https://hianime-api-seven-teal.vercel.app';
+const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 
 export interface AnimeResult {
   id: string;

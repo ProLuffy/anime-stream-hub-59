@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Disclaimer from '@/components/ui/Disclaimer';
 import { toast } from 'sonner';
 import { useCustomStream } from '@/hooks/useCustomStream';
-import { requestMuxedDownload } from '@/lib/customBackend';
+import { requestMuxedDownload, getAdminSubtitles, getGeneratedSubtitles } from '@/lib/customBackend';
 import { resolveStreamFast, SERVER_PRIORITY } from '@/lib/streamResolver';
 
 // Available languages for dub
@@ -22,14 +22,14 @@ const DUB_LANGUAGES = [
   { code: 'raw', name: 'Raw (No Subs)', flag: '🌐' },
 ];
 
-// Available subtitle languages
-const SUBTITLE_LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'hi', name: 'Hindi', flag: '🇮🇳', premium: true },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
-  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-];
+// Subtitle track interface
+interface SubtitleOption {
+  url: string;
+  label: string;
+  lang: string;
+  isDefault?: boolean;
+  source: 'hianime' | 'admin' | 'ai' | 'custom';
+}
 
 export default function WatchPageLive() {
   const { id, episodeId } = useParams();
@@ -51,9 +51,11 @@ export default function WatchPageLive() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   
+  
   // Language dropdown states
   const [showDubDropdown, setShowDubDropdown] = useState(false);
   const [showSubDropdown, setShowSubDropdown] = useState(false);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
   const { data: animeData } = useAnimeInfo(id || '');
   const { data: episodesData } = useEpisodes(id || '');
@@ -136,11 +138,44 @@ export default function WatchPageLive() {
     type: s.type || 'hls',
   })) || [];
 
-  const playerSubtitles = streamData?.subtitles?.map((s: any) => ({
-    url: s.file || s.url,
-    lang: s.label || s.lang || 'English',
-    label: s.label || s.lang,
-  })) || [];
+  // Combine all subtitle sources
+  const allSubtitles: SubtitleOption[] = [
+    // HiAnime subtitles
+    ...(streamData?.subtitles?.map((s: any) => ({
+      url: s.file || s.url,
+      label: s.label || s.lang || 'English',
+      lang: s.label || s.lang || 'en',
+      isDefault: s.default,
+      source: 'hianime' as const,
+    })) || []),
+    // Admin-added subtitles
+    ...getAdminSubtitles(id || '', currentEpisode?.number || 1).map(s => ({
+      url: s.file,
+      label: s.label,
+      lang: s.label.split(' ')[0]?.toLowerCase() || 'custom',
+      source: 'admin' as const,
+    })),
+    // AI-generated subtitles
+    ...getGeneratedSubtitles(id || '', currentEpisode?.number || 1).map(s => ({
+      url: s.file,
+      label: s.label,
+      lang: s.label.split(' ')[0]?.toLowerCase() || 'ai',
+      source: 'ai' as const,
+    })),
+    // Custom backend subtitles (Hindi)
+    ...(customStream?.subtitleUrl ? [{
+      url: customStream.subtitleUrl,
+      label: `${customStream.subtitleLang || 'Hindi'} (Custom)`,
+      lang: 'hi',
+      source: 'custom' as const,
+    }] : []),
+  ];
+
+  const playerSubtitles = allSubtitles.map(s => ({
+    url: s.url,
+    lang: s.label,
+    label: s.label,
+  }));
 
   const handleRetry = () => {
     setIsRetrying(true);
@@ -360,33 +395,41 @@ export default function WatchPageLive() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute top-full left-0 mt-2 p-2 bg-card rounded-xl border border-border shadow-xl z-50 min-w-[220px]"
+                      className="absolute top-full left-0 mt-2 p-2 bg-card rounded-xl border border-border shadow-xl z-50 min-w-[250px] max-h-80 overflow-y-auto"
                     >
                       <p className="px-3 py-1.5 text-xs text-muted-foreground font-medium">Available Subtitles</p>
                       
-                      {SUBTITLE_LANGUAGES.map(lang => (
-                        <button
-                          key={lang.code}
-                          onClick={() => {
-                            if (lang.premium && !isPremium) {
-                              toast.error('This is a Premium feature');
-                              navigate('/premium');
-                            } else {
-                              toast.success(`${lang.name} subtitles selected`);
-                            }
-                            setShowSubDropdown(false);
-                          }}
-                          className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between hover:bg-secondary transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span>{lang.flag}</span>
-                            <span>{lang.name}</span>
-                          </div>
-                          {lang.premium && (
-                            <Crown className="w-4 h-4 text-yellow-500" />
-                          )}
-                        </button>
-                      ))}
+                      {allSubtitles.length > 0 ? (
+                        allSubtitles.map((sub, idx) => (
+                          <button
+                            key={`${sub.url}-${idx}`}
+                            onClick={() => {
+                              setSelectedSubtitle(sub.url);
+                              toast.success(`${sub.label} subtitles selected`);
+                              setShowSubDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between transition-colors ${
+                              selectedSubtitle === sub.url ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Subtitles className="w-4 h-4" />
+                              <span className="truncate">{sub.label}</span>
+                            </div>
+                            {sub.source === 'ai' && (
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-purple-500/20 text-purple-400">AI</span>
+                            )}
+                            {sub.source === 'admin' && (
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-green-500/20 text-green-400">Admin</span>
+                            )}
+                            {sub.source === 'custom' && (
+                              <span className="px-1.5 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400">Custom</span>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No subtitles available</p>
+                      )}
                       
                       <div className="border-t border-border mt-2 pt-2">
                         <button

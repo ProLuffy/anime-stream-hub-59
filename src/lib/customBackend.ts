@@ -1,6 +1,9 @@
 // Custom Backend API for Hindi Audio/Subtitles Overlay
-// Replace with your actual backend URL
+// Replace with your actual backend URL when deployed
 const CUSTOM_BACKEND_URL = 'https://api.yourdomain.com';
+
+// HiAnime API for fetching data
+const HIANIME_API_URL = 'https://hianimeapi-1vww.onrender.com/api/v1';
 
 export interface CustomStreamData {
   hasCustomAudio: boolean;
@@ -38,6 +41,13 @@ export interface AdminSubtitleData {
   videoUrl?: string; // For AI subtitle generation
 }
 
+export interface SubtitleTrack {
+  file: string;
+  label: string;
+  kind: string;
+  default?: boolean;
+}
+
 // Fetch custom stream data (audio/subtitle overlay)
 export async function fetchCustomStreamData(episodeId: string, lang: string = 'hindi'): Promise<CustomStreamData> {
   try {
@@ -59,6 +69,52 @@ export async function fetchCustomStreamData(episodeId: string, lang: string = 'h
   } catch (error) {
     console.log('Custom backend not available, using default stream');
     return { hasCustomAudio: false, hasCustomSubtitle: false };
+  }
+}
+
+// Fetch admin-added subtitles from localStorage (demo mode)
+export function getAdminSubtitles(animeId: string, episodeNumber: number): SubtitleTrack[] {
+  try {
+    const episodes = JSON.parse(localStorage.getItem('custom-episodes') || '[]');
+    const matching = episodes.filter((ep: any) => 
+      ep.title?.toLowerCase().replace(/\s+/g, '-').includes(animeId.split('-').slice(0, 2).join('-')) &&
+      ep.episodeNumber === episodeNumber
+    );
+    
+    const subtitles: SubtitleTrack[] = [];
+    matching.forEach((ep: any) => {
+      if (ep.customSubtitle?.enabled && ep.customSubtitle?.url) {
+        subtitles.push({
+          file: ep.customSubtitle.url,
+          label: `${ep.customSubtitle.language?.toUpperCase() || 'Custom'} (Admin)`,
+          kind: 'subtitles',
+        });
+      }
+    });
+    
+    return subtitles;
+  } catch {
+    return [];
+  }
+}
+
+// Fetch AI-generated subtitles from localStorage (demo mode)
+export function getGeneratedSubtitles(animeId: string, episodeNumber: number): SubtitleTrack[] {
+  try {
+    const requests = JSON.parse(localStorage.getItem('subtitle-requests') || '[]');
+    const completed = requests.filter((r: any) => 
+      r.animeId === animeId && 
+      r.status === 'completed' &&
+      (r.scope === 'series' || r.episodeNumber === episodeNumber)
+    );
+    
+    return completed.map((r: any) => ({
+      file: `https://subtitles.example.com/${animeId}/ep${episodeNumber}.${r.language}.vtt`,
+      label: `${r.language.toUpperCase()} (AI Generated)`,
+      kind: 'subtitles',
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -149,4 +205,9 @@ export async function addCustomSubtitle(data: AdminSubtitleData): Promise<{ succ
 // Get backend base URL (for configuration)
 export function getCustomBackendUrl(): string {
   return CUSTOM_BACKEND_URL;
+}
+
+// Get HiAnime API base URL
+export function getHiAnimeApiUrl(): string {
+  return HIANIME_API_URL;
 }
