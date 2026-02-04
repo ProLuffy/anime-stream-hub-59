@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Hls from 'hls.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, 
@@ -33,7 +34,6 @@ interface VideoPlayerProps {
   hasNext?: boolean;
   intro?: { start: number; end: number };
   outro?: { start: number; end: number };
-  // Custom stream overlay
   customStream?: CustomStreamData | null;
 }
 
@@ -73,6 +73,7 @@ export default function VideoPlayer({
   customStream,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -82,6 +83,7 @@ export default function VideoPlayer({
   const [volume, setVolume] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showSubtitleSettings, setShowSubtitleSettings] = useState(false);
@@ -121,6 +123,102 @@ export default function VideoPlayer({
 
   const currentSource = sources[currentSourceIndex];
 
+  // Initialize HLS.js for M3U8 streams
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentSource?.url) return;
+
+    const sourceUrl = currentSource.url;
+    console.log('[VideoPlayer] Loading source:', sourceUrl);
+
+    // Cleanup previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    setIsLoading(true);
+    setHasError(false);
+    setErrorMessage('');
+
+    // Check if it's an HLS stream (m3u8)
+    const isHLS = sourceUrl.includes('.m3u8') || currentSource.type === 'hls';
+
+    if (isHLS && Hls.isSupported()) {
+      console.log('[VideoPlayer] Using HLS.js for M3U8 stream');
+      
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 600,
+        startLevel: -1, // Auto quality selection
+        capLevelToPlayerSize: true,
+        debug: false,
+      });
+
+      hlsRef.current = hls;
+
+      hls.loadSource(sourceUrl);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        console.log('[VideoPlayer] HLS manifest parsed, levels:', data.levels.length);
+        setIsLoading(false);
+        video.play().catch(e => console.log('Autoplay blocked:', e.message));
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('[VideoPlayer] HLS error:', data.type, data.details);
+        
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('[VideoPlayer] Network error, trying to recover...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('[VideoPlayer] Media error, trying to recover...');
+              hls.recoverMediaError();
+              break;
+            default:
+              // Try next source
+              tryNextSource();
+              break;
+          }
+        }
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        const level = hls.levels[data.level];
+        if (level) {
+          console.log(`[VideoPlayer] Quality switched to: ${level.height}p`);
+        }
+      });
+
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS support
+      console.log('[VideoPlayer] Using native HLS support');
+      video.src = sourceUrl;
+      video.addEventListener('loadedmetadata', () => {
+        setIsLoading(false);
+        video.play().catch(e => console.log('Autoplay blocked:', e.message));
+      });
+    } else {
+      // Regular MP4 or other format
+      console.log('[VideoPlayer] Using native video element');
+      video.src = sourceUrl;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [currentSource]);
+
   const switchSource = useCallback((index: number) => {
     if (index >= 0 && index < sources.length) {
       const savedTime = videoRef.current?.currentTime || 0;
@@ -128,13 +226,15 @@ export default function VideoPlayer({
       setIsLoading(true);
       setHasError(false);
       
-      setTimeout(() => {
+      // Restore time after source loads
+      const handleTimeRestore = () => {
         if (videoRef.current) {
           videoRef.current.currentTime = savedTime;
           videoRef.current.play().catch(() => {});
         }
-      }, 100);
+      };
       
+      setTimeout(handleTimeRestore, 500);
       toast.success(`Switched to ${sources[index].quality || `Source ${index + 1}`}`);
     }
   }, [sources]);
@@ -145,6 +245,7 @@ export default function VideoPlayer({
       switchSource(currentSourceIndex + 1);
     } else {
       setHasError(true);
+      setErrorMessage('All stream sources failed to load');
     }
   }, [currentSourceIndex, sources.length, switchSource]);
 
@@ -167,9 +268,14 @@ export default function VideoPlayer({
     }
   };
 
-  const handleError = () => {
+  const handleError = (e: any) => {
+    console.error('[VideoPlayer] Native video error:', e);
     setIsLoading(false);
-    tryNextSource();
+    
+    // Only try next source if not using HLS.js (HLS.js handles its own errors)
+    if (!hlsRef.current) {
+      tryNextSource();
+    }
   };
 
   const handleWaiting = () => setIsLoading(true);
@@ -188,7 +294,6 @@ export default function VideoPlayer({
 
   const toggleMute = () => {
     if (videoRef.current) {
-      // Don't unmute if custom audio is active
       if (selectedAudioTrack === 'hindi') {
         toast.info('Video is muted while Hindi audio is playing');
         return;
@@ -234,11 +339,27 @@ export default function VideoPlayer({
 
   const handleQualityChange = (quality: string) => {
     setSelectedQuality(quality);
-    const sourceIndex = sources.findIndex(s => 
-      s.quality?.includes(quality) || quality === 'auto'
-    );
-    if (sourceIndex >= 0 && sourceIndex !== currentSourceIndex) {
-      switchSource(sourceIndex);
+    
+    // If using HLS.js, change level directly
+    if (hlsRef.current) {
+      if (quality === 'auto') {
+        hlsRef.current.currentLevel = -1; // Auto
+      } else {
+        const targetHeight = parseInt(quality);
+        const levelIndex = hlsRef.current.levels.findIndex(l => l.height === targetHeight);
+        if (levelIndex >= 0) {
+          hlsRef.current.currentLevel = levelIndex;
+        }
+      }
+      toast.success(`Quality set to ${quality === 'auto' ? 'Auto' : quality + 'p'}`);
+    } else {
+      // Fallback to source switching
+      const sourceIndex = sources.findIndex(s => 
+        s.quality?.includes(quality) || quality === 'auto'
+      );
+      if (sourceIndex >= 0 && sourceIndex !== currentSourceIndex) {
+        switchSource(sourceIndex);
+      }
     }
     setShowSettings(false);
   };
@@ -267,6 +388,12 @@ export default function VideoPlayer({
     controlsTimeoutRef.current = setTimeout(() => {
       if (isPlaying) setShowControls(false);
     }, 3000);
+  };
+
+  const handleRetry = () => {
+    setCurrentSourceIndex(0);
+    setIsLoading(true);
+    setHasError(false);
   };
 
   useEffect(() => {
@@ -335,7 +462,6 @@ export default function VideoPlayer({
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
-        src={currentSource.url}
         poster={poster}
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
@@ -345,6 +471,7 @@ export default function VideoPlayer({
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         crossOrigin="anonymous"
+        playsInline
       >
         {subtitleSettings.enabled && allSubtitles.map((sub, idx) => (
           <track
@@ -380,9 +507,9 @@ export default function VideoPlayer({
           >
             <div className="text-center">
               <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-              {audioState.isLoading && (
-                <p className="text-sm text-muted-foreground mt-2">Syncing Hindi audio...</p>
-              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                {audioState.isLoading ? 'Syncing Hindi audio...' : 'Loading stream...'}
+              </p>
             </div>
           </motion.div>
         )}
@@ -395,10 +522,10 @@ export default function VideoPlayer({
             <AlertCircle className="w-12 h-12 mx-auto text-destructive mb-4" />
             <p className="font-semibold mb-2">Stream Not Available</p>
             <p className="text-sm text-muted-foreground mb-4">
-              All sources failed to load
+              {errorMessage || 'All sources failed to load'}
             </p>
             <button
-              onClick={() => switchSource(0)}
+              onClick={handleRetry}
               className="btn-ghost flex items-center gap-2 mx-auto"
             >
               <RotateCcw className="w-4 h-4" />

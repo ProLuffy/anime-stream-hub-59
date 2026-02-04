@@ -4,9 +4,9 @@
 // CORRECT HiAnime API endpoint
 const API_BASE = 'https://hianimeapi-1vww.onrender.com/api/v1';
 
-// Server priority order - most reliable first
-const SERVER_PRIORITY = ['hd-1', 'hd-2', 'megacloud', 'streamsb', 'vidstreaming', 'vidcloud'];
-const CATEGORY_PRIORITY = ['sub', 'dub', 'raw'];
+// Server priority order - CORRECT servers from API
+export const SERVER_PRIORITY = ['hd-1', 'hd-2', 'megaplay', 'vidwish'];
+export const CATEGORY_PRIORITY = ['sub', 'dub', 'raw'];
 
 interface StreamSource {
   url: string;
@@ -14,10 +14,18 @@ interface StreamSource {
   type?: string;
 }
 
+interface SubtitleTrack {
+  url: string;
+  lang: string;
+  label: string;
+  kind?: string;
+  default?: boolean;
+}
+
 interface StreamResult {
   success: boolean;
   sources: StreamSource[];
-  subtitles: any[];
+  subtitles: SubtitleTrack[];
   intro?: { start: number; end: number };
   outro?: { start: number; end: number };
   server: string;
@@ -25,18 +33,8 @@ interface StreamResult {
   error?: string;
 }
 
-// Generate all server/category combinations
-function generateCombinations(): { server: string; category: string }[] {
-  const combinations: { server: string; category: string }[] = [];
-  
-  for (const category of CATEGORY_PRIORITY) {
-    for (const server of SERVER_PRIORITY) {
-      combinations.push({ server, category });
-    }
-  }
-  
-  return combinations;
-}
+// Small delay to avoid rate limiting
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Attempt to fetch stream from a specific server/category
 async function tryStreamSource(
@@ -47,15 +45,25 @@ async function tryStreamSource(
   try {
     // HiAnime API format: /stream?id=EP_ID&server=SERVER&type=sub/dub
     const url = `${API_BASE}/stream?id=${encodeURIComponent(episodeId)}&server=${server}&type=${category}`;
-    console.log(`[StreamResolver] Trying: ${server}/${category} - ${url}`);
+    console.log(`[StreamResolver] Trying: ${server}/${category}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     const response = await fetch(url, {
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      signal: AbortSignal.timeout(10000), // 10 second timeout per attempt
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
+    
+    // Handle rate limiting
+    if (response.status === 429) {
+      throw new Error('Rate limited');
+    }
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -75,17 +83,25 @@ async function tryStreamSource(
       throw new Error('No sources in response');
     }
     
+    // Validate that at least one source has a valid URL
+    const validSources = sources.filter((s: any) => s.url && (s.url.startsWith('http') || s.url.startsWith('//')));
+    if (validSources.length === 0) {
+      throw new Error('No valid source URLs');
+    }
+    
+    console.log(`[StreamResolver] ✓ Got ${validSources.length} sources from ${server}/${category}`);
+    
     return {
       success: true,
-      sources: sources.map((s: any) => ({
-        url: s.url,
+      sources: validSources.map((s: any) => ({
+        url: s.url.startsWith('//') ? `https:${s.url}` : s.url,
         quality: s.quality || 'auto',
         type: s.type || 'hls',
       })),
       subtitles: tracks.map((t: any) => ({
         url: t.file || t.url,
         lang: t.label || t.lang || 'English',
-        label: t.label || t.lang,
+        label: t.label || t.lang || 'English',
         kind: t.kind || 'subtitles',
         default: t.default || false,
       })),
@@ -95,25 +111,87 @@ async function tryStreamSource(
       category,
     };
   } catch (error: any) {
-    console.log(`[StreamResolver] Failed ${server}/${category}: ${error.message}`);
+    const errorMsg = error.name === 'AbortError' ? 'Timeout' : error.message;
+    console.log(`[StreamResolver] ✗ ${server}/${category}: ${errorMsg}`);
     return {
       success: false,
       sources: [],
       subtitles: [],
       server,
       category,
-      error: error.message,
+      error: errorMsg,
     };
   }
 }
 
-// Main resolver function - tries all combinations until one works
+// Fast resolver - try 2 servers at once to avoid rate limiting, with delays
+export async function resolveStreamFast(
+  episodeId: string,
+  preferredCategory: string = 'sub'
+): Promise<StreamResult> {
+  console.log(`[StreamResolver] Fast resolving: ${episodeId} with category: ${preferredCategory}`);
+  
+  // Try servers sequentially with small delays to avoid rate limiting
+  for (const server of SERVER_PRIORITY) {
+    const result = await tryStreamSource(episodeId, server, preferredCategory);
+    
+    if (result.success) {
+      console.log(`[StreamResolver] ✓ Success: ${result.server}/${result.category}`);
+      return result;
+    }
+    
+    // If rate limited, wait longer
+    if (result.error === 'Rate limited') {
+      await delay(2000);
+    } else {
+      await delay(300); // Small delay between requests
+    }
+  }
+  
+  // If preferred category failed, try other categories
+  console.log('[StreamResolver] Trying other categories...');
+  const otherCategories = CATEGORY_PRIORITY.filter(c => c !== preferredCategory);
+  
+  for (const category of otherCategories) {
+    for (const server of SERVER_PRIORITY.slice(0, 2)) { // Only try first 2 servers
+      const result = await tryStreamSource(episodeId, server, category);
+      
+      if (result.success) {
+        console.log(`[StreamResolver] ✓ Fallback success: ${result.server}/${result.category}`);
+        return result;
+      }
+      
+      // Delay between requests
+      await delay(result.error === 'Rate limited' ? 2000 : 300);
+    }
+  }
+  
+  // All failed
+  console.log('[StreamResolver] ✗ All sources failed');
+  return {
+    success: false,
+    sources: [],
+    subtitles: [],
+    server: 'hd-1',
+    category: preferredCategory,
+    error: 'Stream not available. Try a different episode or check back later.',
+  };
+}
+
+// Sequential resolver - tries all combinations one by one (slower but thorough)
 export async function resolveStream(
   episodeId: string,
   preferredServer?: string,
   preferredCategory?: string
 ): Promise<StreamResult> {
-  const combinations = generateCombinations();
+  const combinations: { server: string; category: string }[] = [];
+  
+  // Generate all combinations
+  for (const category of CATEGORY_PRIORITY) {
+    for (const server of SERVER_PRIORITY) {
+      combinations.push({ server, category });
+    }
+  }
   
   // Move preferred combination to front if specified
   if (preferredServer && preferredCategory) {
@@ -126,14 +204,15 @@ export async function resolveStream(
     }
   }
   
-  // Try each combination
+  // Try each combination with delays
   for (const combo of combinations) {
     const result = await tryStreamSource(episodeId, combo.server, combo.category);
     
     if (result.success) {
-      console.log(`[StreamResolver] ✓ Success with ${combo.server}/${combo.category}`);
       return result;
     }
+    
+    await delay(300);
   }
   
   // All failed
@@ -147,57 +226,28 @@ export async function resolveStream(
   };
 }
 
-// Parallel resolver - try multiple servers at once, return first success
-export async function resolveStreamFast(
-  episodeId: string,
-  preferredCategory: string = 'sub'
-): Promise<StreamResult> {
-  console.log(`[StreamResolver] Fast resolving: ${episodeId} with category: ${preferredCategory}`);
-  
-  // Try all servers in parallel for the preferred category
-  const promises = SERVER_PRIORITY.map(server => 
-    tryStreamSource(episodeId, server, preferredCategory)
-  );
-  
-  // Race to get the first successful result
-  const results = await Promise.all(promises);
-  
-  // Find first successful result
-  const success = results.find(r => r.success);
-  if (success) {
-    console.log(`[StreamResolver] ✓ Fast resolve success: ${success.server}/${success.category}`);
-    return success;
-  }
-  
-  // If preferred category failed, try other categories
-  console.log('[StreamResolver] Fast resolve failed for preferred category, trying others...');
-  
-  const otherCategories = CATEGORY_PRIORITY.filter(c => c !== preferredCategory);
-  
-  for (const category of otherCategories) {
-    const categoryPromises = SERVER_PRIORITY.slice(0, 3).map(server => 
-      tryStreamSource(episodeId, server, category)
-    );
+// Get episode servers info
+export async function getEpisodeServers(episodeId: string): Promise<{
+  sub: string[];
+  dub: string[];
+  raw: string[];
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/servers?id=${encodeURIComponent(episodeId)}`);
+    const data = await response.json();
     
-    const categoryResults = await Promise.all(categoryPromises);
-    const categorySuccess = categoryResults.find(r => r.success);
-    
-    if (categorySuccess) {
-      console.log(`[StreamResolver] ✓ Fallback success: ${categorySuccess.server}/${categorySuccess.category}`);
-      return categorySuccess;
+    if (data.success && data.data) {
+      return {
+        sub: data.data.sub?.map((s: any) => s.serverName) || [],
+        dub: data.data.dub?.map((s: any) => s.serverName) || [],
+        raw: data.data.raw?.map((s: any) => s.serverName) || [],
+      };
     }
+  } catch (error) {
+    console.error('[StreamResolver] Failed to get servers:', error);
   }
   
-  // All failed
-  console.log('[StreamResolver] ✗ All sources failed');
-  return {
-    success: false,
-    sources: [],
-    subtitles: [],
-    server: 'hd-1',
-    category: preferredCategory,
-    error: 'All stream sources failed. The episode may not be available yet.',
-  };
+  return { sub: [], dub: [], raw: [] };
 }
 
 // Fetch episodes for an anime
@@ -226,14 +276,14 @@ export async function getAvailableServers(episodeId: string): Promise<{ server: 
   const available: { server: string; category: string }[] = [];
   
   // Quick check of each server (just sub category)
-  const checks = SERVER_PRIORITY.slice(0, 3).map(async server => {
+  for (const server of SERVER_PRIORITY.slice(0, 2)) {
     const result = await tryStreamSource(episodeId, server, 'sub');
     if (result.success) {
       available.push({ server, category: 'sub' });
     }
-  });
+    await delay(200);
+  }
   
-  await Promise.all(checks);
   return available;
 }
 
@@ -241,5 +291,3 @@ export async function getAvailableServers(episodeId: string): Promise<{ server: 
 export function getApiBaseUrl(): string {
   return API_BASE;
 }
-
-export { SERVER_PRIORITY, CATEGORY_PRIORITY };
