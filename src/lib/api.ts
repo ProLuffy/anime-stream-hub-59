@@ -2,13 +2,18 @@
 // API Base: https://hianimeapi-1vww.onrender.com/api/v1
 
 const API_BASE = 'https://hianimeapi-1vww.onrender.com';
+const CORS_PROXIES = [
+  '', // Try direct first
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+];
 
 export interface AnimeResult {
   id: string;
   name?: string;
-  title?: string; // API returns title instead of name
+  title?: string;
   jname?: string;
-  alternativeTitle?: string; // Japanese title from API
+  alternativeTitle?: string;
   poster: string;
   type?: string;
   quality?: string;
@@ -21,7 +26,7 @@ export interface AnimeResult {
   rating?: string;
   rank?: number;
   description?: string;
-  synopsis?: string; // API returns synopsis instead of description
+  synopsis?: string;
   otherInfo?: string[];
   aired?: string;
 }
@@ -86,7 +91,6 @@ export interface StreamingSource {
 export interface HomeData {
   success: boolean;
   data: {
-    // New API structure (your API)
     spotlight?: SpotlightAnime[];
     trending?: AnimeResult[];
     topAiring?: AnimeResult[];
@@ -95,7 +99,6 @@ export interface HomeData {
     mostFavorite?: AnimeResult[];
     latestCompleted?: AnimeResult[];
     topUpcoming?: AnimeResult[];
-    // Old API structure (fallback)
     spotlightAnimes?: SpotlightAnime[];
     trendingAnimes?: AnimeResult[];
     latestEpisodeAnimes?: AnimeResult[];
@@ -117,22 +120,36 @@ export interface HomeData {
   };
 }
 
-// Helper function to make API calls
+// Helper function to make API calls with CORS proxy fallback
 async function apiFetch(endpoint: string) {
-  const url = `${API_BASE}/api/v1${endpoint}`;
-  console.log('Fetching:', url);
+  const fullUrl = `${API_BASE}/api/v1${endpoint}`;
   
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+      console.log('Fetching:', url);
+      
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(15000), // 15s timeout
+      });
+      
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log('API Response received');
+      return data;
+    } catch (error) {
+      console.warn(`Fetch failed with ${proxy || 'direct'}, trying next...`, error);
+      continue;
+    }
   }
   
-  return res.json();
+  throw new Error('All API proxies failed');
 }
 
 // Fetch home data (trending, spotlight, top airing, latest episodes)
