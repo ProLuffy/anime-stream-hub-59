@@ -2,10 +2,13 @@
 // API Base: https://hianimeapi-1vww.onrender.com/api/v1
 
 const API_BASE = 'https://hianimeapi-1vww.onrender.com';
+
+// CORS proxies - allorigins works best, try it first
 const CORS_PROXIES = [
-  '', // Try direct first
-  'https://corsproxy.io/?',
   'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest=',
+  '', // Direct as last resort
 ];
 
 export interface AnimeResult {
@@ -121,35 +124,50 @@ export interface HomeData {
 }
 
 // Helper function to make API calls with CORS proxy fallback
-async function apiFetch(endpoint: string) {
+async function apiFetch(endpoint: string, retries = 2): Promise<any> {
   const fullUrl = `${API_BASE}/api/v1${endpoint}`;
+  let lastError: Error | null = null;
   
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
-      console.log('Fetching:', url);
-      
-      const res = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(15000), // 15s timeout
-      });
-      
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+        console.log(`Attempt ${attempt + 1}, Fetching:`, url);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        
+        const res = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log('✅ API Response received from:', proxy || 'direct');
+        return data;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`❌ Fetch failed with ${proxy || 'direct'}:`, error.message);
+        continue;
       }
-      
-      const data = await res.json();
-      console.log('API Response received');
-      return data;
-    } catch (error) {
-      console.warn(`Fetch failed with ${proxy || 'direct'}, trying next...`, error);
-      continue;
+    }
+    
+    // Wait before retry
+    if (attempt < retries) {
+      console.log(`Waiting 2s before retry ${attempt + 2}...`);
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
   
-  throw new Error('All API proxies failed');
+  throw lastError || new Error('All API proxies failed');
 }
 
 // Fetch home data (trending, spotlight, top airing, latest episodes)
