@@ -137,7 +137,9 @@ async function apiFetch(endpoint: string) {
 
 // Fetch home data (trending, spotlight, top airing, latest episodes)
 export async function fetchHomeData(): Promise<HomeData> {
-  return apiFetch('/home');
+  const data = await apiFetch('/home');
+  console.log('Home API Response:', data);
+  return data;
 }
 
 // Search anime
