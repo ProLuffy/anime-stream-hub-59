@@ -17,7 +17,7 @@ export function useHomeData() {
   });
 }
 
-// Hook for searching anime
+// Hook for searching anime (uses abbreviation expansion)
 export function useSearchAnime(query: string, page = 1) {
   return useQuery({
     queryKey: ['search', query, page],

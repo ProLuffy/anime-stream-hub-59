@@ -187,7 +187,98 @@ export async function fetchHomeData(): Promise<HomeData> {
 
 // Search anime
 export async function searchAnime(query: string, page = 1) {
-  return apiFetch(`/search?keyword=${encodeURIComponent(query)}&page=${page}`);
+  // Expand abbreviations before searching
+  const expandedQuery = expandAbbreviation(query);
+  return apiFetch(`/search?keyword=${encodeURIComponent(expandedQuery)}&page=${page}`);
+}
+
+// Search suggestions (lightweight autocomplete)
+export async function searchSuggestion(query: string) {
+  const expandedQuery = expandAbbreviation(query);
+  try {
+    return await apiFetch(`/search/suggestion?keyword=${encodeURIComponent(expandedQuery)}`);
+  } catch {
+    // Fallback to full search if suggestion endpoint doesn't exist
+    return searchAnime(expandedQuery, 1);
+  }
+}
+
+// Common anime abbreviations map
+const ANIME_ABBREVIATIONS: Record<string, string> = {
+  'opm': 'One Punch Man',
+  'op': 'One Piece',
+  'aot': 'Attack on Titan',
+  'snk': 'Shingeki no Kyojin',
+  'mha': 'My Hero Academia',
+  'bnha': 'Boku no Hero Academia',
+  'jjk': 'Jujutsu Kaisen',
+  'ds': 'Demon Slayer',
+  'kny': 'Kimetsu no Yaiba',
+  'sao': 'Sword Art Online',
+  'fmab': 'Fullmetal Alchemist Brotherhood',
+  'fma': 'Fullmetal Alchemist',
+  'hxh': 'Hunter x Hunter',
+  'dbz': 'Dragon Ball Z',
+  'dbs': 'Dragon Ball Super',
+  'db': 'Dragon Ball',
+  'sl': 'Solo Leveling',
+  'bc': 'Black Clover',
+  'csm': 'Chainsaw Man',
+  'spy': 'Spy x Family',
+  'spyxfamily': 'Spy x Family',
+  'ror': 'Record of Ragnarok',
+  'tog': 'Tower of God',
+  'tg': 'Tokyo Ghoul',
+  're0': 'Re:Zero',
+  'rezero': 'Re:Zero',
+  'konosuba': 'Konosuba',
+  'shield hero': 'The Rising of the Shield Hero',
+  'overlord': 'Overlord',
+  'mushoku': 'Mushoku Tensei',
+  'mt': 'Mushoku Tensei',
+  'isekai ojisan': 'Uncle from Another World',
+  'ttigraas': 'That Time I Got Reincarnated as a Slime',
+  'slime': 'That Time I Got Reincarnated as a Slime',
+  'tensura': 'That Time I Got Reincarnated as a Slime',
+  'nge': 'Neon Genesis Evangelion',
+  'eva': 'Neon Genesis Evangelion',
+  'bebop': 'Cowboy Bebop',
+  'cb': 'Cowboy Bebop',
+  'naruto': 'Naruto',
+  'ns': 'Naruto Shippuden',
+  'bleach': 'Bleach',
+  'tybw': 'Bleach Thousand Year Blood War',
+  'dandadan': 'Dandadan',
+  'frieren': 'Frieren',
+  'oshi no ko': 'Oshi no Ko',
+  'onk': 'Oshi no Ko',
+  'vinland': 'Vinland Saga',
+  'dr stone': 'Dr. Stone',
+  'mob': 'Mob Psycho 100',
+  'mp100': 'Mob Psycho 100',
+  'odd taxi': 'Odd Taxi',
+  'blue lock': 'Blue Lock',
+  'bl': 'Blue Lock',
+  'ft': 'Fairy Tail',
+  'yyh': 'Yu Yu Hakusho',
+  'ygo': 'Yu-Gi-Oh',
+  'zom100': 'Zom 100',
+  'classroom': 'Assassination Classroom',
+  'assclass': 'Assassination Classroom',
+  'steins gate': 'Steins;Gate',
+  'sg': 'Steins;Gate',
+  'cote': 'Classroom of the Elite',
+  'tbhk': 'Toilet-Bound Hanako-kun',
+  'hell paradise': 'Hell\'s Paradise',
+  'hp': 'Hell\'s Paradise',
+  'wind breaker': 'Wind Breaker',
+  'wb': 'Wind Breaker',
+  'kaiju': 'Kaiju No. 8',
+};
+
+function expandAbbreviation(query: string): string {
+  const lower = query.trim().toLowerCase();
+  return ANIME_ABBREVIATIONS[lower] || query;
 }
 
 // Fetch anime details
