@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Grid, List, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import AnimeCardLive from '@/components/anime/AnimeCardLive';
-import { useCategory, useSearchAnime } from '@/hooks/useAnime';
+import { useCategory } from '@/hooks/useAnime';
+import { useFullSearch } from '@/hooks/useSearch';
 import { FooterDisclaimer } from '@/components/ui/Disclaimer';
 
 interface BrowsePageLiveProps {
@@ -20,7 +21,7 @@ export default function BrowsePageLive({ category = 'top-airing', title }: Brows
 
   // Use search if query present, otherwise use category
   const { data: categoryData, isLoading: categoryLoading } = useCategory(category, page);
-  const { data: searchData, isLoading: searchLoading } = useSearchAnime(searchQuery, page);
+  const { data: searchData, isLoading: searchLoading } = useFullSearch(searchQuery, page);
 
   const isSearchMode = searchQuery.length > 0;
   const data = isSearchMode ? searchData : categoryData;
