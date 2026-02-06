@@ -1,6 +1,13 @@
 // Stream Resolver with Auto-Retry functionality
 // Automatically tries different server/category combinations when stream fails
 
+// CORS proxies - codetabs works best for this API
+const CORS_PROXIES = [
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://api.allorigins.win/raw?url=',
+  '', // Direct as last resort
+];
+
 // CORRECT HiAnime API endpoint
 const API_BASE = 'https://hianimeapi-1vww.onrender.com/api/v1';
 
@@ -42,86 +49,87 @@ async function tryStreamSource(
   server: string,
   category: string
 ): Promise<StreamResult> {
-  try {
-    // HiAnime API format: /stream?id=EP_ID&server=SERVER&type=sub/dub
-    const url = `${API_BASE}/stream?id=${encodeURIComponent(episodeId)}&server=${server}&type=${category}`;
-    console.log(`[StreamResolver] Trying: ${server}/${category}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    const response = await fetch(url, {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    
-    // Handle rate limiting
-    if (response.status === 429) {
-      throw new Error('Rate limited');
+  const fullUrl = `${API_BASE}/stream?id=${encodeURIComponent(episodeId)}&server=${server}&type=${category}`;
+  
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+      console.log(`[StreamResolver] Trying: ${server}/${category} via ${proxy || 'direct'}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Accept': 'application/json'
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limited');
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'API returned error');
+      }
+      
+      const sources = data.data?.sources || [];
+      const tracks = data.data?.tracks || data.data?.subtitles || [];
+      
+      if (!sources.length) {
+        throw new Error('No sources in response');
+      }
+      
+      const validSources = sources.filter((s: any) => s.url && (s.url.startsWith('http') || s.url.startsWith('//')));
+      if (validSources.length === 0) {
+        throw new Error('No valid source URLs');
+      }
+      
+      console.log(`[StreamResolver] ✓ Got ${validSources.length} sources from ${server}/${category}`);
+      
+      return {
+        success: true,
+        sources: validSources.map((s: any) => ({
+          url: s.url.startsWith('//') ? `https:${s.url}` : s.url,
+          quality: s.quality || 'auto',
+          type: s.type || 'hls',
+        })),
+        subtitles: tracks.map((t: any) => ({
+          url: t.file || t.url,
+          lang: t.label || t.lang || 'English',
+          label: t.label || t.lang || 'English',
+          kind: t.kind || 'subtitles',
+          default: t.default || false,
+        })),
+        intro: data.data?.intro,
+        outro: data.data?.outro,
+        server,
+        category,
+      };
+    } catch (error: any) {
+      const errorMsg = error.name === 'AbortError' ? 'Timeout' : error.message;
+      console.log(`[StreamResolver] ✗ ${server}/${category} via ${proxy || 'direct'}: ${errorMsg}`);
+      continue;
     }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // HiAnime API returns { success: true, data: { sources: [...], tracks: [...] } }
-    if (!data.success) {
-      throw new Error(data.message || 'API returned error');
-    }
-    
-    const sources = data.data?.sources || [];
-    const tracks = data.data?.tracks || data.data?.subtitles || [];
-    
-    if (!sources.length) {
-      throw new Error('No sources in response');
-    }
-    
-    // Validate that at least one source has a valid URL
-    const validSources = sources.filter((s: any) => s.url && (s.url.startsWith('http') || s.url.startsWith('//')));
-    if (validSources.length === 0) {
-      throw new Error('No valid source URLs');
-    }
-    
-    console.log(`[StreamResolver] ✓ Got ${validSources.length} sources from ${server}/${category}`);
-    
-    return {
-      success: true,
-      sources: validSources.map((s: any) => ({
-        url: s.url.startsWith('//') ? `https:${s.url}` : s.url,
-        quality: s.quality || 'auto',
-        type: s.type || 'hls',
-      })),
-      subtitles: tracks.map((t: any) => ({
-        url: t.file || t.url,
-        lang: t.label || t.lang || 'English',
-        label: t.label || t.lang || 'English',
-        kind: t.kind || 'subtitles',
-        default: t.default || false,
-      })),
-      intro: data.data?.intro,
-      outro: data.data?.outro,
-      server,
-      category,
-    };
-  } catch (error: any) {
-    const errorMsg = error.name === 'AbortError' ? 'Timeout' : error.message;
-    console.log(`[StreamResolver] ✗ ${server}/${category}: ${errorMsg}`);
-    return {
-      success: false,
-      sources: [],
-      subtitles: [],
-      server,
-      category,
-      error: errorMsg,
-    };
   }
+  
+  return {
+    success: false,
+    sources: [],
+    subtitles: [],
+    server,
+    category,
+    error: 'All proxies failed for this server',
+  };
 }
 
 // Fast resolver - try 2 servers at once to avoid rate limiting, with delays
@@ -226,6 +234,29 @@ export async function resolveStream(
   };
 }
 
+// Helper: fetch with CORS proxy fallback
+async function fetchWithProxy(fullUrl: string): Promise<any> {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch {
+      continue;
+    }
+  }
+  throw new Error('All proxies failed');
+}
+
 // Get episode servers info
 export async function getEpisodeServers(episodeId: string): Promise<{
   sub: string[];
@@ -233,8 +264,7 @@ export async function getEpisodeServers(episodeId: string): Promise<{
   raw: string[];
 }> {
   try {
-    const response = await fetch(`${API_BASE}/servers?id=${encodeURIComponent(episodeId)}`);
-    const data = await response.json();
+    const data = await fetchWithProxy(`${API_BASE}/servers?id=${encodeURIComponent(episodeId)}`);
     
     if (data.success && data.data) {
       return {
@@ -253,8 +283,7 @@ export async function getEpisodeServers(episodeId: string): Promise<{
 // Fetch episodes for an anime
 export async function fetchEpisodes(animeId: string): Promise<any[]> {
   try {
-    const response = await fetch(`${API_BASE}/episodes/${animeId}`);
-    const data = await response.json();
+    const data = await fetchWithProxy(`${API_BASE}/episodes/${animeId}`);
     
     if (data.success && Array.isArray(data.data)) {
       return data.data.map((ep: any) => ({

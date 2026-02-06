@@ -21,19 +21,17 @@ function getAnimeArray(data: HomeData | undefined, ...keys: string[]): AnimeResu
   const d = data.data as any;
   
   for (const key of keys) {
-    // Try direct key access first
-    if (Array.isArray(d[key]) && d[key].length > 0) {
-      return d[key];
-    }
-  }
-  
-  // Check nested structures like top10Animes.today
-  for (const key of keys) {
+    // Handle nested keys like top10Animes.today
     if (key.includes('.')) {
       const [parent, child] = key.split('.');
       if (d[parent]?.[child] && Array.isArray(d[parent][child])) {
         return d[parent][child];
       }
+      continue;
+    }
+    // Direct key access
+    if (Array.isArray(d[key]) && d[key].length > 0) {
+      return d[key];
     }
   }
   
@@ -92,11 +90,11 @@ function AnimeSectionLive({ title, subtitle, animeList, viewAllLink, isLoading }
 
 export function TrendingSectionLive() {
   const { data, isLoading } = useHomeData();
-  // HiAnime API uses trendingAnimes
+  // API returns: newAdded, mostFavorite, latestEpisode, mostPopular, latestCompleted
   const trending = getAnimeArray(data, 
-    'trendingAnimes',
-    'trending', 
-    'spotlightAnimes' // fallback to spotlight if trending not available
+    'trendingAnimes', 'trending',
+    'newAdded',        // actual API field
+    'mostFavorite',    // fallback
   );
   
   return (
@@ -113,10 +111,9 @@ export function TrendingSectionLive() {
 export function TopAiringSectionLive() {
   const { data, isLoading } = useHomeData();
   const topAiring = getAnimeArray(data,
-    'topAiringAnimes',
-    'topAiring',
+    'topAiringAnimes', 'topAiring',
+    'latestEpisode',    // actual API field - currently airing with new eps
     'top10Animes.today',
-    'spotlightAnimes' // fallback
   );
   
   return (
@@ -133,9 +130,9 @@ export function TopAiringSectionLive() {
 export function LatestEpisodesSectionLive() {
   const { data, isLoading } = useHomeData();
   const latest = getAnimeArray(data,
-    'latestEpisodeAnimes',
-    'latestEpisodes',
-    'trendingAnimes' // fallback
+    'latestEpisodeAnimes', 'latestEpisodes',
+    'latestEpisode',     // actual API field
+    'newAdded',          // fallback
   );
   
   return (
@@ -152,8 +149,8 @@ export function LatestEpisodesSectionLive() {
 export function UpcomingSectionLive() {
   const { data, isLoading } = useHomeData();
   const upcoming = getAnimeArray(data,
-    'topUpcomingAnimes',
-    'topUpcoming'
+    'topUpcomingAnimes', 'topUpcoming',
+    'latestCompleted',   // actual API field as fallback
   );
   
   return (
@@ -171,9 +168,9 @@ export function MostPopularSectionLive() {
   const { data, isLoading } = useHomeData();
   const popular = getAnimeArray(data,
     'mostPopularAnimes',
-    'mostPopular',
+    'mostPopular',       // actual API field ✅
+    'mostFavorite',      // fallback
     'top10Animes.week',
-    'trendingAnimes' // fallback to trending
   );
   
   return (

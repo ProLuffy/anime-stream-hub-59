@@ -11,11 +11,11 @@ interface AnimeCardLiveProps {
 
 // Helper functions for API field compatibility
 function getAnimeName(anime: AnimeResult): string {
-  return anime.name || anime.title || 'Unknown';
+  return anime.name || (anime as any).title || 'Unknown';
 }
 
 function getAnimeJName(anime: AnimeResult): string {
-  return anime.jname || anime.alternativeTitle || '';
+  return anime.jname || (anime as any).alternativeTitle || '';
 }
 
 export default function AnimeCardLive({ anime, index = 0 }: AnimeCardLiveProps) {
