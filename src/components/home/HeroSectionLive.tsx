@@ -23,8 +23,10 @@ export default function HeroSectionLive() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
 
-  // Support both API structures: data.spotlight or data.spotlightAnimes
-  const spotlightAnimes = data?.data?.spotlight || data?.data?.spotlightAnimes || [];
+  // Support multiple API structures - the API may return different field names
+  const d = data?.data as any;
+  const spotlightAnimes = d?.spotlight || d?.spotlightAnimes 
+    || d?.mostPopular || d?.mostFavorite || d?.newAdded || [];
   const current = spotlightAnimes[currentIndex];
 
   useEffect(() => {

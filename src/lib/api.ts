@@ -3,11 +3,11 @@
 
 const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 
-// CORS proxies - allorigins works best, try it first
+// CORS proxies - codetabs works best for this API
 const CORS_PROXIES = [
+  'https://api.codetabs.com/v1/proxy?quest=',
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest=',
   '', // Direct as last resort
 ];
 
@@ -33,6 +33,9 @@ export interface AnimeResult {
   otherInfo?: string[];
   aired?: string;
 }
+
+// Re-export apiFetch for use by streamResolver
+export { apiFetch };
 
 export interface SpotlightAnime extends AnimeResult {
   rank: number;
@@ -94,6 +97,7 @@ export interface StreamingSource {
 export interface HomeData {
   success: boolean;
   data: {
+    // Original API v2 keys
     spotlight?: SpotlightAnime[];
     trending?: AnimeResult[];
     topAiring?: AnimeResult[];
@@ -102,6 +106,7 @@ export interface HomeData {
     mostFavorite?: AnimeResult[];
     latestCompleted?: AnimeResult[];
     topUpcoming?: AnimeResult[];
+    // API v1 keys with "Animes" suffix
     spotlightAnimes?: SpotlightAnime[];
     trendingAnimes?: AnimeResult[];
     latestEpisodeAnimes?: AnimeResult[];
@@ -115,6 +120,9 @@ export interface HomeData {
     mostPopularAnimes?: AnimeResult[];
     mostFavoriteAnimes?: AnimeResult[];
     latestCompletedAnimes?: AnimeResult[];
+    // Actual API response keys (no suffix)
+    latestEpisode?: AnimeResult[];
+    newAdded?: AnimeResult[];
     genres?: string[];
     featuredAnimes?: {
       topAiringAnimes?: AnimeResult[];
