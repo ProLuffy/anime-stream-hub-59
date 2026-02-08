@@ -40,7 +40,6 @@ export default function HeroSectionLive() {
   if (isLoading) {
     return (
       <section className="min-h-screen flex items-center justify-center hero-gradient">
-        <Particles />
         <div className="text-center">
           <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">Loading anime...</p>
@@ -52,7 +51,6 @@ export default function HeroSectionLive() {
   if (error || !current) {
     return (
       <section className="min-h-screen flex items-center justify-center hero-gradient">
-        <Particles />
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Welcome to AniCrew</h2>
           <p className="text-muted-foreground">Your anime discovery destination</p>
