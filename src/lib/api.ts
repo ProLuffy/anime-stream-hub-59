@@ -6,16 +6,15 @@ const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 // CORS proxy configs - each has different URL encoding requirements
 interface ProxyConfig {
   prefix: string;
-  encode: boolean; // whether to encodeURIComponent the target URL
+  encode: boolean;
 }
 
+// Order matters: codetabs works best, direct as fast fallback
 const CORS_PROXIES: ProxyConfig[] = [
-  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', encode: false }, // codetabs needs raw URL
+  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', encode: false },
+  { prefix: '', encode: false }, // Direct - works when no CORS block
   { prefix: 'https://api.allorigins.win/raw?url=', encode: true },
-  { prefix: 'https://corsproxy.io/?', encode: true },
-  { prefix: '', encode: false }, // Direct as last resort
 ];
-
 export interface AnimeResult {
   id: string;
   name?: string;
@@ -137,7 +136,7 @@ export interface HomeData {
 }
 
 // Helper function to make API calls with CORS proxy fallback
-async function apiFetch(endpoint: string, retries = 2): Promise<any> {
+async function apiFetch(endpoint: string, retries = 1): Promise<any> {
   const fullUrl = `${API_BASE}/api/v1${endpoint}`;
   let lastError: Error | null = null;
   
@@ -146,15 +145,12 @@ async function apiFetch(endpoint: string, retries = 2): Promise<any> {
       try {
         const targetUrl = proxy.encode ? encodeURIComponent(fullUrl) : fullUrl;
         const url = proxy.prefix ? `${proxy.prefix}${targetUrl}` : fullUrl;
-        console.log(`Attempt ${attempt + 1}, Fetching:`, url);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout - fast fail
         
         const res = await fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-          },
+          headers: { 'Accept': 'application/json' },
           signal: controller.signal,
         });
         
@@ -164,20 +160,26 @@ async function apiFetch(endpoint: string, retries = 2): Promise<any> {
           throw new Error(`API error: ${res.status}`);
         }
         
-        const data = await res.json();
-        console.log('✅ API Response received from:', proxy.prefix || 'direct');
+        // Detect HTML responses (Render cold start returns HTML loading page)
+        const contentType = res.headers.get('content-type') || '';
+        const text = await res.text();
+        
+        if (text.trimStart().startsWith('<!') || text.trimStart().startsWith('<html')) {
+          throw new Error('Got HTML instead of JSON - backend cold starting');
+        }
+        
+        const data = JSON.parse(text);
+        console.log('✅ API Response from:', proxy.prefix || 'direct');
         return data;
       } catch (error: any) {
         lastError = error;
-        console.warn(`❌ Fetch failed with ${proxy.prefix || 'direct'}:`, error.message);
         continue;
       }
     }
     
-    // Wait before retry
+    // Brief wait before retry
     if (attempt < retries) {
-      console.log(`Waiting 2s before retry ${attempt + 2}...`);
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
   

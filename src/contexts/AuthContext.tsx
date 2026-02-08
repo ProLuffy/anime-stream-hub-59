@@ -93,20 +93,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const login = async (email: string, password: string) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 400));
     
     const existingUsers = JSON.parse(localStorage.getItem('anicrew-users') || '[]');
     const existingUser = existingUsers.find((u: User) => u.email === email);
+    const isOwnerEmail = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
     
     if (existingUser) {
       // Check if user is stopped
       if (existingUser.status === 'stopped') {
         throw new Error('Your account has been suspended. Contact support.');
       }
+      // Always re-check owner email - fix role if needed
+      if (isOwnerEmail && existingUser.role !== 'owner') {
+        existingUser.role = 'owner';
+        existingUser.isPremium = true;
+        const idx = existingUsers.findIndex((u: User) => u.id === existingUser.id);
+        if (idx >= 0) existingUsers[idx] = existingUser;
+        localStorage.setItem('anicrew-users', JSON.stringify(existingUsers));
+      }
       setUser(existingUser);
     } else {
-      // Create new user - check if owner email
-      const isOwnerEmail = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+      // Create new user
       const newUser: User = {
         id: crypto.randomUUID(),
         username: email.split('@')[0],

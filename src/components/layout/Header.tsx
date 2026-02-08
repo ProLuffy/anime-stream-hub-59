@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, User, Settings, LogOut, Crown, Download } from 'lucide-react';
+import { Search, Menu, X, User, Settings, LogOut, Crown, Download, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme, themes, darkThemes, specialThemes } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +9,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 
 export default function Header() {
   const { theme, setTheme, currentTheme } = useTheme();
-  const { user, isLoggedIn, isPremium, logout } = useAuth();
+  const { user, isLoggedIn, isPremium, isAdmin, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -171,6 +171,16 @@ export default function Header() {
                           <Settings className="w-4 h-4" />
                           <span className="text-sm">Settings</span>
                         </Link>
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setProfileOpen(false)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                          >
+                            <Shield className="w-4 h-4" />
+                            <span className="text-sm">Admin Dashboard</span>
+                          </Link>
+                        )}
                         <button
                           onClick={() => { logout(); setProfileOpen(false); }}
                           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-destructive/20 text-destructive transition-colors"
