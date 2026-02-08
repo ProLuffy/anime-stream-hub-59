@@ -3,12 +3,17 @@
 
 const API_BASE = 'https://hianimeapi-1vww.onrender.com';
 
-// CORS proxies - codetabs works best for this API
-const CORS_PROXIES = [
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  '', // Direct as last resort
+// CORS proxy configs - each has different URL encoding requirements
+interface ProxyConfig {
+  prefix: string;
+  encode: boolean; // whether to encodeURIComponent the target URL
+}
+
+const CORS_PROXIES: ProxyConfig[] = [
+  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', encode: false }, // codetabs needs raw URL
+  { prefix: 'https://api.allorigins.win/raw?url=', encode: true },
+  { prefix: 'https://corsproxy.io/?', encode: true },
+  { prefix: '', encode: false }, // Direct as last resort
 ];
 
 export interface AnimeResult {
@@ -139,7 +144,8 @@ async function apiFetch(endpoint: string, retries = 2): Promise<any> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     for (const proxy of CORS_PROXIES) {
       try {
-        const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+        const targetUrl = proxy.encode ? encodeURIComponent(fullUrl) : fullUrl;
+        const url = proxy.prefix ? `${proxy.prefix}${targetUrl}` : fullUrl;
         console.log(`Attempt ${attempt + 1}, Fetching:`, url);
         
         const controller = new AbortController();
@@ -159,11 +165,11 @@ async function apiFetch(endpoint: string, retries = 2): Promise<any> {
         }
         
         const data = await res.json();
-        console.log('✅ API Response received from:', proxy || 'direct');
+        console.log('✅ API Response received from:', proxy.prefix || 'direct');
         return data;
       } catch (error: any) {
         lastError = error;
-        console.warn(`❌ Fetch failed with ${proxy || 'direct'}:`, error.message);
+        console.warn(`❌ Fetch failed with ${proxy.prefix || 'direct'}:`, error.message);
         continue;
       }
     }

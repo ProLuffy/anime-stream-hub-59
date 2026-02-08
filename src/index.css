@@ -811,6 +811,17 @@
     50% { transform: translateY(-20px); }
   }
 
+  @keyframes float-up {
+    0% { transform: translateY(110vh); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-10vh); opacity: 0; }
+  }
+
+  .animate-float-up {
+    animation: float-up linear infinite;
+  }
+
   @keyframes pulseGlow {
     0%, 100% { 
       opacity: 0.6;

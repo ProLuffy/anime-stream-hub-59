@@ -1,11 +1,16 @@
 // Stream Resolver with Auto-Retry functionality
 // Automatically tries different server/category combinations when stream fails
 
-// CORS proxies - codetabs works best for this API
-const CORS_PROXIES = [
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://api.allorigins.win/raw?url=',
-  '', // Direct as last resort
+// CORS proxy configs - each has different URL encoding requirements
+interface ProxyConfig {
+  prefix: string;
+  encode: boolean;
+}
+
+const CORS_PROXIES: ProxyConfig[] = [
+  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', encode: false }, // codetabs needs raw URL
+  { prefix: 'https://api.allorigins.win/raw?url=', encode: true },
+  { prefix: '', encode: false }, // Direct as last resort
 ];
 
 // CORRECT HiAnime API endpoint
@@ -53,8 +58,9 @@ async function tryStreamSource(
   
   for (const proxy of CORS_PROXIES) {
     try {
-      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
-      console.log(`[StreamResolver] Trying: ${server}/${category} via ${proxy || 'direct'}`);
+      const targetUrl = proxy.encode ? encodeURIComponent(fullUrl) : fullUrl;
+      const url = proxy.prefix ? `${proxy.prefix}${targetUrl}` : fullUrl;
+      console.log(`[StreamResolver] Trying: ${server}/${category} via ${proxy.prefix || 'direct'}`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -117,7 +123,7 @@ async function tryStreamSource(
       };
     } catch (error: any) {
       const errorMsg = error.name === 'AbortError' ? 'Timeout' : error.message;
-      console.log(`[StreamResolver] ✗ ${server}/${category} via ${proxy || 'direct'}: ${errorMsg}`);
+      console.log(`[StreamResolver] ✗ ${server}/${category} via ${proxy.prefix || 'direct'}: ${errorMsg}`);
       continue;
     }
   }
@@ -238,7 +244,8 @@ export async function resolveStream(
 async function fetchWithProxy(fullUrl: string): Promise<any> {
   for (const proxy of CORS_PROXIES) {
     try {
-      const url = proxy ? `${proxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+      const targetUrl = proxy.encode ? encodeURIComponent(fullUrl) : fullUrl;
+      const url = proxy.prefix ? `${proxy.prefix}${targetUrl}` : fullUrl;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       
