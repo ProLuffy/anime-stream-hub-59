@@ -1,42 +1,27 @@
-// /netlify/functions/api.ts
+import type { Handler } from '@netlify/functions';
 
-const API_BASE = "https://hianimeapi-1vww.onrender.com/api/v1";
+const BASE_URL = "https://hianimeapi-1vww.onrender.com";
 
-export const handler = async (event: any) => {
+export const handler: Handler = async (event) => {
   try {
-    const endpoint = event.queryStringParameters?.endpoint;
+    const { path, q, page } = event.queryStringParameters || {};
 
-    if (!endpoint) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing endpoint" }),
-      };
+    let url = BASE_URL;
+
+    if (path === "search") {
+      url += `/search?keyword=${q}&page=${page || 1}`;
+    } else if (path === "suggestion") {
+      url += `/search/suggest?keyword=${q}`;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ error: "API failed" }),
-      };
-    }
-
-    const data = await response.text();
+    const res = await fetch(url);
+    const data = await res.json();
 
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=300",
-      },
-      body: data,
+      body: JSON.stringify(data),
     };
-  } catch (error: any) {
+  } catch (err) {
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Server error" }),
