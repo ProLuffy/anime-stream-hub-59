@@ -11,4 +11,4 @@ status: 'ongoing' | 'completed' | 'upcoming';
 rating: number;
 year: number;
 languages: string[];
-} Ka naam toh bata
+}
