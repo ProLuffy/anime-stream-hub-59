@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import {
   fetchHomeData,
   searchAnime,
@@ -6,82 +6,114 @@ import {
   fetchEpisodes,
   fetchEpisodeSources,
   fetchCategory,
-} from '@/lib/api';
+} from "@/lib/api";
 
-// Hook for home page data (trending, latest, etc.)
+/* ============================= */
+/* HOME DATA */
+/* ============================= */
+
 export function useHomeData() {
   return useQuery({
-    queryKey: ['home'],
+    queryKey: ["home"],
     queryFn: fetchHomeData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for searching anime (uses abbreviation expansion)
+/* ============================= */
+/* SEARCH */
+/* ============================= */
+
 export function useSearchAnime(query: string, page = 1) {
   return useQuery({
-    queryKey: ['search', query, page],
-    queryFn: () => searchAnime(query, page),
-    enabled: query.length > 0,
+    queryKey: ["search", query, page],
+    queryFn: () => searchAnime(query.trim(), page),
+    enabled: !!query && query.trim().length > 0,
     staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for anime details
+/* ============================= */
+/* ANIME INFO */
+/* ============================= */
+
 export function useAnimeInfo(animeId: string) {
   return useQuery({
-    queryKey: ['anime', animeId],
+    queryKey: ["anime-info", animeId],
     queryFn: () => fetchAnimeInfo(animeId),
     enabled: !!animeId,
     staleTime: 10 * 60 * 1000,
+    gcTime: 20 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for episode list
+/* ============================= */
+/* EPISODES */
+/* ============================= */
+
 export function useEpisodes(animeId: string) {
   return useQuery({
-    queryKey: ['episodes', animeId],
+    queryKey: ["episodes", animeId],
     queryFn: () => fetchEpisodes(animeId),
     enabled: !!animeId,
     staleTime: 10 * 60 * 1000,
+    gcTime: 20 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for episode sources
-export function useEpisodeSources(episodeId: string, server: string, category: string) {
+/* ============================= */
+/* EPISODE SOURCES */
+/* ============================= */
+
+export function useEpisodeSources(
+  episodeId: string,
+  server: string,
+  category: string
+) {
   return useQuery({
-    queryKey: ['sources', episodeId, server, category],
+    queryKey: ["sources", episodeId, server, category],
     queryFn: () => fetchEpisodeSources(episodeId, server, category),
     enabled: !!episodeId && !!server,
     staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for category pages (top-airing, most-popular, etc.)
+/* ============================= */
+/* CATEGORY */
+/* ============================= */
+
 export function useCategory(category: string, page = 1) {
   return useQuery({
-    queryKey: ['category', category, page],
+    queryKey: ["category", category, page],
     queryFn: () => fetchCategory(category, page),
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Hook for trending anime
-export function useTrending() {
-  return useCategory('top-airing');
-}
+/* ============================= */
+/* PRESET CATEGORY HOOKS */
+/* ============================= */
 
-// Hook for most popular anime
-export function useMostPopular() {
-  return useCategory('most-popular');
-}
-
-// Hook for recently updated
-export function useRecentlyUpdated() {
-  return useCategory('recently-updated');
-}
-
-// Hook for top upcoming
-export function useTopUpcoming() {
-  return useCategory('top-upcoming');
-}
+export const useTrending = () => useCategory("top-airing");
+export const useMostPopular = () => useCategory("most-popular");
+export const useRecentlyUpdated = () =>
+  useCategory("recently-updated");
+export const useTopUpcoming = () =>
+  useCategory("top-upcoming");
