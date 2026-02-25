@@ -2,846 +2,277 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
-
-/* AniCrew Design System - 36 Themes */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
-    /* Default - Midnight Sakura */
-    --background: 330 30% 6%;
-    --foreground: 330 20% 95%;
-    --card: 330 30% 9%;
-    --card-foreground: 330 20% 95%;
-    --popover: 330 30% 10%;
-    --popover-foreground: 330 20% 95%;
-    --primary: 330 80% 65%;
-    --primary-foreground: 330 30% 6%;
-    --secondary: 330 20% 18%;
-    --secondary-foreground: 330 20% 95%;
-    --muted: 330 20% 15%;
-    --muted-foreground: 330 15% 55%;
-    --accent: 280 70% 60%;
-    --accent-foreground: 330 20% 98%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 330 25% 18%;
-    --input: 330 25% 15%;
-    --ring: 330 80% 65%;
     --radius: 0.75rem;
-    --glow-primary: 330 80% 65%;
-    --glow-accent: 280 70% 60%;
-    --glass-bg: 330 30% 10% / 0.7;
-    --glass-border: 330 25% 30% / 0.3;
-    --sakura: 330 90% 80%;
-    --moonlight: 220 30% 80%;
-    --ember: 25 95% 55%;
-    --sidebar-background: 330 30% 7%;
-    --sidebar-foreground: 330 20% 90%;
-    --sidebar-primary: 330 80% 65%;
-    --sidebar-primary-foreground: 330 30% 6%;
-    --sidebar-accent: 330 20% 15%;
-    --sidebar-accent-foreground: 330 20% 95%;
-    --sidebar-border: 330 25% 18%;
-    --sidebar-ring: 330 80% 65%;
-  }
 
-  /* ========== LIGHT THEMES (12) ========== */
-
-  /* Moonlight (Light) */
-  [data-theme="moonlight"] {
+    /* DEFAULT (Moonlight) */
     --background: 220 25% 95%;
     --foreground: 220 40% 15%;
     --card: 220 20% 98%;
-    --card-foreground: 220 40% 15%;
-    --popover: 220 20% 100%;
-    --popover-foreground: 220 40% 15%;
     --primary: 220 70% 50%;
-    --primary-foreground: 220 25% 98%;
     --secondary: 220 15% 90%;
-    --secondary-foreground: 220 30% 25%;
-    --muted: 220 15% 88%;
-    --muted-foreground: 220 15% 45%;
     --accent: 270 60% 55%;
     --border: 220 15% 85%;
-    --glow-primary: 220 70% 50%;
-    --glass-bg: 220 20% 98% / 0.8;
-    --glass-border: 220 20% 70% / 0.3;
+    --muted: 220 15% 88%;
+    --glow: 220 70% 50%;
   }
 
-  /* Sakura Snow */
-  [data-theme="sakura-snow"] {
-    --background: 330 30% 96%;
-    --foreground: 330 40% 15%;
-    --card: 330 25% 99%;
-    --card-foreground: 330 40% 15%;
-    --primary: 330 70% 60%;
-    --primary-foreground: 330 30% 98%;
-    --secondary: 330 20% 92%;
-    --muted: 330 15% 88%;
-    --muted-foreground: 330 15% 45%;
-    --accent: 300 60% 55%;
-    --border: 330 20% 88%;
-    --glow-primary: 330 70% 60%;
-    --glass-bg: 330 25% 99% / 0.8;
-    --glass-border: 330 25% 70% / 0.3;
+  /* ===== DARK THEMES ===== */
+
+  [data-theme="shadow-reign"] {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --primary: 0 80% 55%;
+    --accent: 300 60% 50%;
   }
 
-  /* Cloud White */
-  [data-theme="cloud-white"] {
+  [data-theme="abyss-core"] {
+    --background: 220 50% 6%;
+    --foreground: 220 20% 95%;
+    --primary: 200 90% 55%;
+    --accent: 180 80% 50%;
+  }
+
+  [data-theme="phantom-black"] {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 95%;
+    --primary: 260 60% 60%;
+  }
+
+  [data-theme="blood-moon"] {
+    --background: 350 40% 6%;
+    --foreground: 0 0% 95%;
+    --primary: 0 80% 55%;
+  }
+
+  [data-theme="obsidian-edge"] {
+    --background: 260 20% 5%;
+    --foreground: 260 10% 95%;
+    --primary: 280 70% 55%;
+  }
+
+  /* ===== NEON ===== */
+
+  [data-theme="cyberpunk-nova"] {
+    --background: 260 40% 6%;
+    --foreground: 180 100% 90%;
+    --primary: 320 100% 60%;
+    --accent: 180 100% 50%;
+  }
+
+  [data-theme="neon-drift"] {
+    --background: 280 40% 7%;
+    --foreground: 280 15% 95%;
+    --primary: 260 80% 60%;
+    --accent: 180 80% 50%;
+  }
+
+  [data-theme="tokyo-night"] {
+    --background: 240 30% 8%;
+    --foreground: 0 0% 95%;
+    --primary: 330 80% 60%;
+  }
+
+  [data-theme="digital-storm"] {
+    --background: 220 40% 7%;
+    --foreground: 220 20% 95%;
+    --primary: 210 100% 60%;
+  }
+
+  [data-theme="glitch-realm"] {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --primary: 0 100% 50%;
+  }
+
+  [data-theme="vaporwave-dream"] {
+    --background: 300 40% 8%;
+    --foreground: 300 20% 95%;
+    --primary: 320 80% 65%;
+    --accent: 180 80% 50%;
+  }
+
+  /* ===== LIGHT ===== */
+
+  [data-theme="snowfall"] {
     --background: 210 30% 98%;
     --foreground: 210 40% 10%;
-    --card: 210 25% 100%;
-    --card-foreground: 210 40% 10%;
     --primary: 210 80% 55%;
-    --primary-foreground: 210 30% 98%;
-    --secondary: 210 20% 94%;
-    --muted: 210 15% 90%;
-    --muted-foreground: 210 15% 40%;
-    --accent: 190 70% 50%;
-    --border: 210 20% 88%;
-    --glow-primary: 210 80% 55%;
   }
 
-  /* Ivory Sky */
-  [data-theme="ivory-sky"] {
-    --background: 45 30% 97%;
-    --foreground: 45 40% 12%;
-    --card: 45 25% 99%;
-    --card-foreground: 45 40% 12%;
-    --primary: 45 80% 50%;
-    --primary-foreground: 45 30% 10%;
-    --secondary: 45 20% 92%;
-    --muted: 45 15% 88%;
-    --muted-foreground: 45 15% 45%;
-    --accent: 30 70% 55%;
-    --border: 45 20% 88%;
-    --glow-primary: 45 80% 50%;
+  [data-theme="sakura-bloom"] {
+    --background: 330 40% 96%;
+    --foreground: 330 40% 15%;
+    --primary: 330 70% 60%;
   }
 
-  /* Soft Pastel */
-  [data-theme="soft-pastel"] {
-    --background: 300 20% 97%;
-    --foreground: 300 30% 15%;
-    --card: 300 15% 99%;
-    --card-foreground: 300 30% 15%;
-    --primary: 280 50% 65%;
-    --primary-foreground: 280 20% 98%;
-    --secondary: 300 15% 92%;
-    --muted: 300 12% 88%;
-    --muted-foreground: 300 12% 45%;
-    --accent: 200 50% 60%;
-    --border: 300 15% 88%;
-    --glow-primary: 280 50% 65%;
+  [data-theme="ocean-breeze"] {
+    --background: 190 40% 96%;
+    --foreground: 190 40% 15%;
+    --primary: 190 80% 50%;
   }
 
-  /* Vanilla Cream */
-  [data-theme="vanilla-cream"] {
-    --background: 40 40% 96%;
-    --foreground: 40 50% 12%;
-    --card: 40 35% 99%;
-    --card-foreground: 40 50% 12%;
-    --primary: 35 80% 55%;
-    --primary-foreground: 35 30% 98%;
-    --secondary: 40 25% 92%;
-    --muted: 40 20% 88%;
-    --muted-foreground: 40 20% 45%;
-    --accent: 25 70% 50%;
-    --border: 40 25% 88%;
-    --glow-primary: 35 80% 55%;
+  [data-theme="sky-mist"] {
+    --background: 220 30% 96%;
+    --foreground: 220 40% 15%;
+    --primary: 220 70% 55%;
   }
 
-  /* Morning Bloom */
-  [data-theme="morning-bloom"] {
-    --background: 25 35% 96%;
-    --foreground: 25 45% 12%;
-    --card: 25 30% 99%;
-    --card-foreground: 25 45% 12%;
-    --primary: 25 90% 55%;
-    --primary-foreground: 25 35% 98%;
-    --secondary: 25 20% 92%;
-    --muted: 25 15% 88%;
-    --muted-foreground: 25 15% 45%;
-    --accent: 330 60% 60%;
-    --border: 25 20% 88%;
-    --glow-primary: 25 90% 55%;
+  [data-theme="ivory-calm"] {
+    --background: 40 30% 96%;
+    --foreground: 40 40% 15%;
+    --primary: 40 80% 50%;
   }
 
-  /* Paper White */
-  [data-theme="paper-white"] {
-    --background: 0 0% 98%;
+  [data-theme="cloud-silver"] {
+    --background: 0 0% 96%;
     --foreground: 0 0% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
-    --primary: 0 0% 20%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 94%;
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 35%;
-    --border: 0 0% 88%;
-    --glow-primary: 0 0% 20%;
+    --primary: 0 0% 30%;
   }
 
-  /* Sunrise Tokyo */
-  [data-theme="sunrise-tokyo"] {
-    --background: 30 50% 97%;
-    --foreground: 30 40% 10%;
-    --card: 30 40% 99%;
-    --card-foreground: 30 40% 10%;
-    --primary: 25 90% 55%;
-    --primary-foreground: 30 50% 98%;
-    --secondary: 30 30% 92%;
-    --muted: 30 25% 88%;
-    --muted-foreground: 30 20% 40%;
-    --accent: 330 70% 60%;
-    --border: 30 25% 88%;
-    --glow-primary: 25 90% 55%;
+  /* ===== ANIME POWER ===== */
+
+  [data-theme="dragon-flame"] {
+    --background: 20 50% 6%;
+    --foreground: 20 20% 95%;
+    --primary: 25 100% 55%;
   }
 
-  /* Light Otaku */
-  [data-theme="light-otaku"] {
-    --background: 260 20% 97%;
-    --foreground: 260 30% 15%;
-    --card: 260 15% 99%;
-    --card-foreground: 260 30% 15%;
-    --primary: 260 70% 55%;
-    --primary-foreground: 260 20% 98%;
-    --secondary: 260 15% 92%;
-    --muted: 260 12% 88%;
-    --muted-foreground: 260 12% 45%;
-    --accent: 330 60% 55%;
-    --border: 260 15% 88%;
-    --glow-primary: 260 70% 55%;
-  }
-
-  /* Peach Blossom */
-  [data-theme="peach-blossom"] {
-    --background: 15 40% 96%;
-    --foreground: 15 45% 12%;
-    --card: 15 35% 99%;
-    --card-foreground: 15 45% 12%;
-    --primary: 15 80% 60%;
-    --primary-foreground: 15 40% 98%;
-    --secondary: 15 25% 92%;
-    --muted: 15 20% 88%;
-    --muted-foreground: 15 20% 45%;
-    --accent: 330 60% 55%;
-    --border: 15 25% 88%;
-    --glow-primary: 15 80% 60%;
-  }
-
-  /* Cotton Candy */
-  [data-theme="cotton-candy"] {
-    --background: 300 30% 96%;
-    --foreground: 300 35% 15%;
-    --card: 300 25% 99%;
-    --card-foreground: 300 35% 15%;
-    --primary: 300 60% 65%;
-    --primary-foreground: 300 30% 98%;
-    --secondary: 300 20% 92%;
-    --muted: 300 15% 88%;
-    --muted-foreground: 300 15% 45%;
-    --accent: 180 50% 50%;
-    --border: 300 20% 88%;
-    --glow-primary: 300 60% 65%;
-  }
-
-  /* ========== DARK THEMES (16) ========== */
-
-  /* Midnight Sakura */
-  [data-theme="midnight-sakura"] {
-    --background: 330 30% 6%;
-    --foreground: 330 20% 95%;
-    --card: 330 30% 9%;
-    --card-foreground: 330 20% 95%;
-    --primary: 330 80% 65%;
-    --primary-foreground: 330 30% 6%;
-    --secondary: 330 20% 18%;
-    --accent: 280 70% 60%;
-    --border: 330 25% 18%;
-    --glow-primary: 330 80% 65%;
-    --sakura: 330 90% 80%;
-  }
-
-  /* Obsidian Night */
-  [data-theme="obsidian-night"] {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
-    --primary: 0 0% 70%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 15%;
-    --accent: 0 0% 50%;
-    --border: 0 0% 15%;
-    --glow-primary: 0 0% 50%;
-  }
-
-  /* Phantom Black */
-  [data-theme="phantom-black"] {
-    --background: 240 10% 4%;
-    --foreground: 240 5% 95%;
-    --card: 240 10% 7%;
-    --card-foreground: 240 5% 95%;
-    --primary: 240 60% 60%;
-    --primary-foreground: 240 10% 4%;
-    --secondary: 240 10% 15%;
-    --accent: 280 50% 50%;
-    --border: 240 10% 15%;
-    --glow-primary: 240 60% 60%;
-  }
-
-  /* Neon Tokyo */
-  [data-theme="neon-tokyo"] {
-    --background: 260 40% 5%;
-    --foreground: 180 100% 90%;
-    --card: 260 40% 8%;
-    --card-foreground: 180 100% 90%;
-    --primary: 320 100% 60%;
-    --primary-foreground: 260 40% 5%;
-    --secondary: 260 30% 18%;
-    --accent: 180 100% 50%;
-    --border: 260 35% 20%;
-    --glow-primary: 320 100% 60%;
-  }
-
-  /* Crimson Void */
-  [data-theme="crimson-void"] {
-    --background: 0 40% 5%;
-    --foreground: 0 20% 95%;
-    --card: 0 40% 8%;
-    --card-foreground: 0 20% 95%;
-    --primary: 0 80% 55%;
-    --primary-foreground: 0 40% 5%;
-    --secondary: 0 25% 18%;
-    --accent: 330 70% 50%;
-    --border: 0 30% 18%;
-    --glow-primary: 0 80% 55%;
-  }
-
-  /* Dark Otaku */
-  [data-theme="dark-otaku"] {
-    --background: 260 35% 6%;
-    --foreground: 260 15% 95%;
-    --card: 260 35% 9%;
-    --card-foreground: 260 15% 95%;
-    --primary: 260 70% 60%;
-    --primary-foreground: 260 35% 6%;
-    --secondary: 260 25% 18%;
-    --accent: 330 70% 55%;
-    --border: 260 30% 18%;
-    --glow-primary: 260 70% 60%;
-  }
-
-  /* Cyber Shinobi */
-  [data-theme="cyber-shinobi"] {
-    --background: 180 40% 4%;
-    --foreground: 180 20% 95%;
-    --card: 180 40% 7%;
-    --card-foreground: 180 20% 95%;
-    --primary: 180 100% 45%;
-    --primary-foreground: 180 40% 4%;
-    --secondary: 180 30% 15%;
-    --accent: 320 80% 55%;
-    --border: 180 35% 15%;
-    --glow-primary: 180 100% 45%;
-  }
-
-  /* Shadow Realm */
-  [data-theme="shadow-realm"] {
-    --background: 270 20% 4%;
-    --foreground: 270 10% 90%;
-    --card: 270 20% 7%;
-    --card-foreground: 270 10% 90%;
-    --primary: 270 50% 50%;
-    --primary-foreground: 270 20% 4%;
-    --secondary: 270 15% 15%;
-    --accent: 200 50% 50%;
-    --border: 270 15% 15%;
-    --glow-primary: 270 50% 50%;
-  }
-
-  /* Eclipse Blue */
-  [data-theme="eclipse-blue"] {
-    --background: 220 50% 5%;
-    --foreground: 220 20% 95%;
-    --card: 220 50% 8%;
-    --card-foreground: 220 20% 95%;
-    --primary: 220 90% 55%;
-    --primary-foreground: 220 50% 5%;
-    --secondary: 220 30% 18%;
-    --accent: 200 80% 55%;
-    --border: 220 40% 18%;
-    --glow-primary: 220 90% 55%;
-  }
-
-  /* Oni Darkness */
-  [data-theme="oni-darkness"] {
-    --background: 350 40% 5%;
-    --foreground: 350 15% 95%;
-    --card: 350 40% 8%;
-    --card-foreground: 350 15% 95%;
-    --primary: 350 80% 50%;
-    --primary-foreground: 350 40% 5%;
-    --secondary: 350 25% 15%;
-    --accent: 30 80% 50%;
-    --border: 350 30% 15%;
-    --glow-primary: 350 80% 50%;
-  }
-
-  /* Void Purple */
-  [data-theme="void-purple"] {
-    --background: 280 40% 5%;
+  [data-theme="demon-aura"] {
+    --background: 280 40% 6%;
     --foreground: 280 15% 95%;
-    --card: 280 40% 8%;
-    --card-foreground: 280 15% 95%;
-    --primary: 280 70% 55%;
-    --primary-foreground: 280 40% 5%;
-    --secondary: 280 25% 18%;
-    --accent: 200 70% 55%;
-    --border: 280 30% 18%;
-    --glow-primary: 280 70% 55%;
-  }
-
-  /* Noir Anime */
-  [data-theme="noir-anime"] {
-    --background: 0 0% 5%;
-    --foreground: 0 0% 90%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 90%;
-    --primary: 0 0% 75%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 15%;
-    --accent: 45 80% 50%;
-    --border: 0 0% 15%;
-    --glow-primary: 0 0% 60%;
-  }
-
-  /* Akatsuki Night */
-  [data-theme="akatsuki-night"] {
-    --background: 0 50% 5%;
-    --foreground: 0 20% 95%;
-    --card: 0 50% 8%;
-    --card-foreground: 0 20% 95%;
-    --primary: 0 90% 45%;
-    --primary-foreground: 0 50% 5%;
-    --secondary: 0 30% 15%;
-    --accent: 0 0% 15%;
-    --border: 0 40% 15%;
-    --glow-primary: 0 90% 45%;
-  }
-
-  /* Zen Black */
-  [data-theme="zen-black"] {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 85%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 85%;
-    --primary: 120 30% 40%;
-    --primary-foreground: 0 0% 3%;
-    --secondary: 0 0% 12%;
-    --accent: 90 30% 45%;
-    --border: 0 0% 12%;
-    --glow-primary: 120 30% 40%;
-  }
-
-  /* Misty Midnight */
-  [data-theme="misty-midnight"] {
-    --background: 210 30% 8%;
-    --foreground: 210 15% 90%;
-    --card: 210 30% 11%;
-    --card-foreground: 210 15% 90%;
-    --primary: 210 50% 55%;
-    --primary-foreground: 210 30% 8%;
-    --secondary: 210 20% 18%;
-    --accent: 240 40% 55%;
-    --border: 210 25% 18%;
-    --glow-primary: 210 50% 55%;
-  }
-
-  /* Nebula Nights */
-  [data-theme="nebula-nights"] {
-    --background: 270 40% 6%;
-    --foreground: 270 15% 95%;
-    --card: 270 40% 9%;
-    --card-foreground: 270 15% 95%;
     --primary: 280 80% 60%;
-    --primary-foreground: 270 40% 6%;
-    --secondary: 270 25% 18%;
-    --accent: 200 80% 55%;
-    --border: 270 30% 18%;
-    --glow-primary: 280 80% 60%;
   }
 
-  /* ========== SPECIAL ANIMATED THEMES (8) ========== */
+  [data-theme="titan-core"] {
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
+    --primary: 0 80% 50%;
+  }
 
-  /* Solar Flare */
-  [data-theme="solar-flare"] {
+  [data-theme="ninja-shadow"] {
+    --background: 140 40% 6%;
+    --foreground: 140 20% 95%;
+    --primary: 140 60% 50%;
+  }
+
+  [data-theme="spirit-blue"] {
+    --background: 220 40% 6%;
+    --foreground: 220 20% 95%;
+    --primary: 210 80% 60%;
+  }
+
+  [data-theme="solar-burst"] {
     --background: 30 50% 6%;
     --foreground: 30 20% 95%;
-    --card: 30 50% 9%;
-    --card-foreground: 30 20% 95%;
-    --primary: 25 100% 55%;
-    --primary-foreground: 30 50% 6%;
-    --secondary: 30 30% 18%;
-    --accent: 45 100% 55%;
-    --border: 30 40% 18%;
-    --glow-primary: 25 100% 55%;
+    --primary: 45 100% 55%;
   }
 
-  /* Vaporwave Neon */
-  [data-theme="vaporwave-neon"] {
-    --background: 280 50% 5%;
-    --foreground: 180 100% 90%;
-    --card: 280 50% 8%;
-    --card-foreground: 180 100% 90%;
-    --primary: 320 100% 65%;
-    --primary-foreground: 280 50% 5%;
-    --secondary: 280 35% 18%;
-    --accent: 180 100% 60%;
-    --border: 280 40% 20%;
-    --glow-primary: 320 100% 65%;
+  /* ===== PREMIUM ===== */
+
+  [data-theme="royal-emerald"] {
+    --background: 140 40% 6%;
+    --foreground: 140 20% 95%;
+    --primary: 140 70% 45%;
   }
 
-  /* Retro Anime */
-  [data-theme="retro-anime"] {
-    --background: 35 30% 8%;
-    --foreground: 35 20% 90%;
-    --card: 35 30% 12%;
-    --card-foreground: 35 20% 90%;
-    --primary: 25 80% 55%;
-    --primary-foreground: 35 30% 8%;
-    --secondary: 35 20% 20%;
-    --accent: 0 70% 55%;
-    --border: 35 25% 20%;
-    --glow-primary: 25 80% 55%;
+  [data-theme="midnight-gold"] {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --primary: 45 90% 55%;
   }
 
-  /* Glassmorphism */
-  [data-theme="glassmorphism"] {
-    --background: 220 40% 10%;
+  [data-theme="sapphire-elite"] {
+    --background: 220 40% 6%;
     --foreground: 220 20% 95%;
-    --card: 220 40% 15%;
-    --card-foreground: 220 20% 95%;
-    --primary: 220 80% 60%;
-    --primary-foreground: 220 40% 10%;
-    --secondary: 220 25% 25%;
-    --accent: 280 60% 60%;
-    --border: 220 30% 25%;
-    --glow-primary: 220 80% 60%;
-    --glass-bg: 220 40% 15% / 0.4;
-    --glass-border: 220 30% 50% / 0.3;
+    --primary: 220 90% 55%;
   }
 
-  /* Studio Ghibli */
-  [data-theme="studio-ghibli"] {
-    --background: 140 25% 94%;
-    --foreground: 140 40% 15%;
-    --card: 140 20% 97%;
-    --card-foreground: 140 40% 15%;
-    --primary: 140 60% 40%;
-    --primary-foreground: 140 25% 98%;
-    --secondary: 140 15% 88%;
-    --muted: 140 12% 85%;
-    --muted-foreground: 140 15% 45%;
-    --accent: 200 50% 50%;
-    --border: 140 18% 85%;
-    --glow-primary: 140 60% 40%;
+  [data-theme="platinum-frost"] {
+    --background: 210 20% 95%;
+    --foreground: 210 40% 15%;
+    --primary: 210 60% 60%;
   }
 
-  /* Monochrome Pro */
-  [data-theme="monochrome-pro"] {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 93%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 93%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 7%;
-    --secondary: 0 0% 18%;
-    --accent: 0 0% 60%;
-    --border: 0 0% 18%;
-    --glow-primary: 0 0% 80%;
+  [data-theme="crimson-velvet"] {
+    --background: 350 40% 6%;
+    --foreground: 350 20% 95%;
+    --primary: 350 80% 55%;
   }
 
-  /* Space Odyssey */
-  [data-theme="space-odyssey"] {
-    --background: 240 50% 4%;
+  [data-theme="onyx-rose"] {
+    --background: 0 0% 5%;
+    --foreground: 330 20% 95%;
+    --primary: 330 70% 60%;
+  }
+
+  /* ===== SPECIAL ===== */
+
+  [data-theme="quantum-flux"] {
+    --background: 260 40% 7%;
+    --foreground: 260 20% 95%;
+    --primary: 260 80% 60%;
+  }
+
+  [data-theme="hologram-ui"] {
+    --background: 200 40% 10%;
+    --foreground: 200 20% 95%;
+    --primary: 200 80% 60%;
+  }
+
+  [data-theme="astro-pulse"] {
+    --background: 240 40% 6%;
     --foreground: 240 20% 95%;
-    --card: 240 50% 7%;
-    --card-foreground: 240 20% 95%;
-    --primary: 200 100% 55%;
-    --primary-foreground: 240 50% 4%;
-    --secondary: 240 30% 15%;
-    --accent: 280 80% 60%;
-    --border: 240 40% 15%;
-    --glow-primary: 200 100% 55%;
+    --primary: 280 80% 60%;
   }
 
-  /* Lunar Eclipse */
-  [data-theme="lunar-eclipse"] {
-    --background: 230 30% 6%;
-    --foreground: 230 15% 90%;
-    --card: 230 30% 9%;
-    --card-foreground: 230 15% 90%;
-    --primary: 45 80% 55%;
-    --primary-foreground: 230 30% 6%;
-    --secondary: 230 20% 18%;
-    --accent: 280 60% 55%;
-    --border: 230 25% 18%;
-    --glow-primary: 45 80% 55%;
+  [data-theme="inferno-motion"] {
+    --background: 10 50% 6%;
+    --foreground: 10 20% 95%;
+    --primary: 10 100% 55%;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
+  [data-theme="aurora-sky"] {
+    --background: 180 40% 8%;
+    --foreground: 180 20% 95%;
+    --primary: 160 80% 50%;
   }
-  
+
+  [data-theme="void-matrix"] {
+    --background: 120 40% 5%;
+    --foreground: 120 20% 95%;
+    --primary: 120 70% 50%;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Outfit', 'Zen Kaku Gothic New', system-ui, sans-serif;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    @apply bg-background text-foreground;
+    font-family: 'Outfit', sans-serif;
   }
 }
+
+/* ===== COMPONENTS ===== */
 
 @layer components {
-  /* Glassmorphism */
   .glass {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--glass-border));
+    background: hsl(var(--background) / 0.7);
+    backdrop-filter: blur(12px);
   }
 
-  .glass-card {
-    @apply glass rounded-xl;
+  .btn {
+    @apply px-5 py-2 rounded-lg font-semibold;
+    background: hsl(var(--primary));
+    color: white;
   }
 
-  /* Glow effects */
-  .glow-primary {
-    box-shadow: 0 0 30px hsl(var(--glow-primary) / 0.3),
-                0 0 60px hsl(var(--glow-primary) / 0.1);
+  .card {
+    @apply rounded-xl p-4;
+    background: hsl(var(--card));
   }
 
-  .glow-accent {
-    box-shadow: 0 0 30px hsl(var(--glow-accent) / 0.3),
-                0 0 60px hsl(var(--glow-accent) / 0.1);
+  .glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
   }
-
-  .text-glow {
-    text-shadow: 0 0 20px hsl(var(--primary) / 0.5),
-                 0 0 40px hsl(var(--primary) / 0.3);
-  }
-
-  /* Anime card 3D effect */
-  .anime-card {
-    transform-style: preserve-3d;
-    perspective: 1000px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .anime-card:hover {
-    transform: translateY(-8px) rotateX(5deg);
-    box-shadow: 0 20px 40px hsl(var(--background) / 0.8),
-                0 0 30px hsl(var(--primary) / 0.2);
-  }
-
-  /* Gradient overlays */
-  .gradient-overlay {
-    background: linear-gradient(
-      to top,
-      hsl(var(--background)) 0%,
-      hsl(var(--background) / 0.8) 30%,
-      transparent 100%
-    );
-  }
-
-  /* Hero gradient */
-  .hero-gradient {
-    background: radial-gradient(
-      ellipse at 50% 0%,
-      hsl(var(--primary) / 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 80% 50%,
-      hsl(var(--accent) / 0.1) 0%,
-      transparent 40%
-    ),
-    hsl(var(--background));
-  }
-
-  /* Button variants */
-  .btn-hero {
-    @apply relative px-8 py-3 rounded-full font-semibold overflow-hidden;
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-    color: hsl(var(--primary-foreground));
-    transition: all 0.3s ease;
-  }
-
-  .btn-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .btn-hero:hover::before {
-    opacity: 1;
-  }
-
-  .btn-hero:hover {
-    transform: scale(1.05);
-    box-shadow: 0 10px 30px hsl(var(--primary) / 0.4);
-  }
-
-  .btn-ghost {
-    @apply px-6 py-2.5 rounded-full font-medium;
-    background: hsl(var(--secondary) / 0.5);
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-    transition: all 0.3s ease;
-  }
-
-  .btn-ghost:hover {
-    background: hsl(var(--secondary));
-    border-color: hsl(var(--primary) / 0.5);
-  }
-
-  /* Premium badge */
-  .premium-badge {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
-    background: linear-gradient(135deg, hsl(45 100% 50%), hsl(35 100% 55%));
-    color: hsl(30 50% 10%);
-    box-shadow: 0 0 20px hsl(45 100% 50% / 0.4);
-  }
-
-  /* Search input */
-  .search-glass {
-    @apply glass-card px-5 py-3 w-full;
-    transition: all 0.3s ease;
-  }
-
-  .search-glass:focus-within {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 0 30px hsl(var(--primary) / 0.2);
-  }
-
-  /* Theme transition */
-  .theme-transition {
-    transition: background-color 0.5s ease, 
-                color 0.3s ease, 
-                border-color 0.3s ease,
-                box-shadow 0.3s ease;
-  }
-
-  /* Particle container */
-  .particles-container {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 0;
-  }
-
-  /* Special theme animations */
-  [data-theme="solar-flare"] .glow-primary {
-    animation: solarPulse 3s ease-in-out infinite;
-  }
-
-  [data-theme="vaporwave-neon"] .text-glow {
-    animation: neonFlicker 2s ease-in-out infinite;
-  }
-
-  [data-theme="space-odyssey"] .particles-container {
-    background: radial-gradient(circle at 20% 80%, hsl(280 80% 30% / 0.1) 0%, transparent 30%),
-                radial-gradient(circle at 80% 20%, hsl(200 80% 30% / 0.1) 0%, transparent 30%);
-  }
-
-  @keyframes solarPulse {
-    0%, 100% { box-shadow: 0 0 30px hsl(25 100% 55% / 0.3), 0 0 60px hsl(25 100% 55% / 0.1); }
-    50% { box-shadow: 0 0 50px hsl(25 100% 55% / 0.5), 0 0 100px hsl(25 100% 55% / 0.2); }
-  }
-
-  @keyframes neonFlicker {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-    52% { opacity: 1; }
-    54% { opacity: 0.9; }
-  }
-}
-
-@layer utilities {
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-pulse-glow {
-    animation: pulseGlow 3s ease-in-out infinite;
-  }
-
-  .animate-shimmer {
-    animation: shimmer 2s linear infinite;
-    background-size: 200% 100%;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  }
-
-  @keyframes float-up {
-    0% { transform: translateY(110vh); opacity: 0; }
-    10% { opacity: 0.6; }
-    90% { opacity: 0.6; }
-    100% { transform: translateY(-10vh); opacity: 0; }
-  }
-
-  .animate-float-up {
-    animation: float-up linear infinite;
-  }
-
-  @keyframes pulseGlow {
-    0%, 100% { 
-      opacity: 0.6;
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-    }
-    50% { 
-      opacity: 1;
-      box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
-    }
-  }
-
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* Staggered animation delays */
-  .delay-100 { animation-delay: 100ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
 }
